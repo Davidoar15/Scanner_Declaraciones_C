@@ -1,0 +1,34 @@
+<unidad-traduccion> ::= { <declaracion> }
+
+<declaracion> ::= <especificadores-declaracion> <lista-declaradores-inicializados> ";"
+                | <especificadores-declaracion> ";"
+
+<especificadores-declaracion> ::= <especificacion-tipo> { <especificacion-tipo> | <qualifier> }
+
+<especificacion-tipo> ::= "void" | "char" | "short" | "int" | "long" | "float"
+                        | "double" | "signed" | "unsigned" | "struct" | "union"
+                        | "enum" | "typedef" | "_Bool" | "_Complex" 
+                        | "_Atomic" | "_Noreturn"
+
+<qualifier> ::= "const" | "volatile" | "static" | "extern"
+              | "register" | "inline" | "restrict"
+
+<lista-declaradores-inicializados> ::= <declarador-inicio>
+                                     | <declarador-inicio> "," <lista-declaradores-inicializados>
+
+<declarador-inicio> ::= <declarador>
+                      | <declarador> "=" <inicializador>
+
+<declarador> ::= <puntero-opcional> <declarador-directo>
+
+<puntero-opcional> ::= "" | "*" <puntero-opcional>
+
+<declarador-directo> ::= IDENT
+                       | "(" <declarador> ")"
+                       | <declarador-directo> "[" <expresion-const-opcional> "]"
+                       | <declarador-directo> "(" <lista-tipos-parametros-opcional> ")"
+
+<inicializador> ::= <expresion-asignacion>
+
+<expresion-const-opcional> ::= "" | <NUMBER_INT>
+<lista-tipos-parametros-opcional> ::= "" | <lista-tipos-parametros>
