@@ -77,3 +77,32 @@ Se detalla BNF del Scanner en el archivo "archivo.bnf".
 ## Definición Máquina de Estados (Autómata Finito)
 
 ![Maquina-Estados](https://i.postimg.cc/6Qv4MSW7/maquina-estado-scanner.png)
+
+## Formalización
+
+### Estados **Q**:
+```
+Q = {
+    CODIGO,
+    BARRA,
+    ASTERISCO,
+    COM_LINEA,
+    COM_BLOQUE,
+    CARACTER,
+    STRING,
+    ESCAPE
+}
+```
+
+### Estado Inicial **Qo**:
+```
+Qo = CODIGO
+```
+
+### Conjunto **Σ**:
+```
+Σ = { /, *, \n, \, ", ', otro }
+```
+* Siendo `otro` cualquier otro caracter del sistema ASCII.
+
+### Tabla de Transiciones (**Q x Σ**):
