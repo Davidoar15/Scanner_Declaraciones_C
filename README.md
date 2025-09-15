@@ -73,3 +73,7 @@ Termina siendo un sistema de reglas de derivación, escrito como:
 donde `<simbolo>` es un **no-terminal**, `::=` se lee como "se define como" o "produce", y la "expresión" consiste en secuencias de símbolos o secuencias separadas por la barra vertical `|`, indicando una "opción", el conjunto es una posible substitución para el símbolo a la izquierda. Los símbolos que nunca aparecen en un lado izquierdo son **terminales**.
 
 Se detalla BNF del Scanner en el archivo "archivo.bnf".
+
+## Definición Máquina de Estados (Autómata Finito)
+
+![Maquina-Estados](https://i.postimg.cc/6Qv4MSW7/maquina-estado-scanner.png)
