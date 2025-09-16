@@ -83,26 +83,42 @@ Se detalla BNF del Scanner en el archivo "archivo.bnf".
 ### Estados **Q**:
 ```
 Q = {
-    CODIGO,
-    BARRA,
-    ASTERISCO,
-    COM_LINEA,
-    COM_BLOQUE,
-    CARACTER,
-    STRING,
-    ESCAPE
+    START, 
+    IDENT, 
+    NUMBER_INT, 
+    HEX_PREFIX, 
+    HEX_NUMBER, 
+    OCTAL_PREFIX, 
+    OCTAL_NUMBER, 
+    STRING, 
+    ESCAPE, 
+    ASSIGN_OP, 
+    POINTER, 
+    DELIMITER, 
+    ACCEPT, 
+    ERROR
 }
 ```
 
 ### Estado Inicial **Qo**:
 ```
-Qo = CODIGO
+Qo = START
 ```
 
-### Conjunto **Σ**:
+### Conjunto **Σ** / Alfabeto:
 ```
-Σ = { /, *, \n, \, ", ', otro }
+Σ = { 
+    LETRA/_    // A–Z a–z y _
+    DIGITO_1_9 // 1-9
+    CERO       // 0
+    xX         // x o X (para 0x)
+    HEX        // 0-9 a-f A-F
+    PUNTO      // .
+    COMILLA_D  // "
+    COMILLA_S  // '
+    BACKSLASH  // Barra invertida \
+    ESP        // espacio / tab / salto de línea ([ \t\r\n])
+    SIM        // símbolos válidos inicio operador/delimitador (* ( ) [ ] { } , ; : = + - / % < > ! . etc.)
+    OTRO       // cualquier otro carácter ASCII no incluido arriba    
+}
 ```
-* Siendo `otro` cualquier otro caracter del sistema ASCII.
-
-### Tabla de Transiciones (**Q x Σ**):
