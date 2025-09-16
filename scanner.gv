@@ -1,0 +1,52 @@
+digraph ScannerC {
+    rankdir=LR;
+    node [shape = circle, fontsize=12, fontname="Arial"];
+
+    // Estados inicial y final
+    START [shape=doublecircle, label="START"];
+    ACCEPT [shape=doublecircle, label="ACCEPT"];
+    ERROR [shape=Msquare, style=filled, color=red, fontcolor=white, label="ERROR"];
+
+    // Identificadores
+    START -> IDENT [label="letra/_"];
+    IDENT -> IDENT [label="letra/dígito/_"];
+    IDENT -> ACCEPT [label="otro"];
+    
+    // Números (int, hex, oct)
+    START -> NUMBER_INT [label="dígito"];
+    NUMBER_INT -> NUMBER_INT [label="dígito"];
+    NUMBER_INT -> HEX_PREFIX [label="'0x'/'0X'"];
+    NUMBER_INT -> OCTAL_PREFIX [label="'0'"];
+    HEX_PREFIX -> HEX_NUMBER [label="hex"];
+    HEX_NUMBER -> HEX_NUMBER [label="hex"];
+    OCTAL_PREFIX -> OCTAL_NUMBER [label="0-7"];
+    OCTAL_NUMBER -> OCTAL_NUMBER [label="0-7"];
+    NUMBER_INT -> ACCEPT [label="otro"];
+    HEX_NUMBER -> ACCEPT [label="otro"];
+    OCTAL_NUMBER -> ACCEPT [label="otro"];
+
+    // Strings
+    START -> STRING [label="\""];
+    STRING -> STRING [label="caracter distinto de \\n y \""];
+    STRING -> ESCAPE [label="\\ "];
+    ESCAPE -> STRING [label="cualquier caracter"];
+    STRING -> ACCEPT [label="\""];
+
+    // Operadores
+    START -> ASSIGN_OP [label="'='"];
+    ASSIGN_OP -> ACCEPT [label="otro"];
+
+    // Punteros
+    START -> POINTER [label="'*'"];
+    POINTER -> ACCEPT [label="otro"];
+
+    // Delimitadores ; , ( ) { }
+    START -> DELIMITER [label="; , ( ) { }"];
+    DELIMITER -> ACCEPT [label="otro"];
+
+    // Espacios / saltos
+    START -> START [label="espacio/salto"];
+
+    // Cualquier cosa no esperada
+    START -> ERROR [label="otro"];
+}
