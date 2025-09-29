@@ -21,7 +21,7 @@
 
 <declarador> ::= <puntero-opcional> <declarador-directo>
 
-<puntero-opcional> ::= "" | "*" <puntero-opcional>
+<puntero-opcional> ::= ε | "*" <puntero-opcional>
 
 <declarador-directo> ::= IDENT
                        | "(" <declarador> ")"
