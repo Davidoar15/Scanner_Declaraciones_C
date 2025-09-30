@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-/* Tipos de token (sin línea/columna) */
+// Tipos de token (sin línea/columna)
 typedef enum {
     TOKEN_ERROR,
     TOKEN_END,
@@ -32,18 +32,17 @@ typedef union {
 } ValorToken;
 
 typedef struct {
-    char *lexema;       /* dinámico, liberar con TokenFree */
+    char *lexema;      
     TipoToken tipo;
-    ValorToken valor;   /* para números y (si se quiere) char */
+    ValorToken valor; 
 } Token;
 
-/* API del scanner (entrada: una cadena) */
-void ScannerInitFromString(const char *s);
-/* Devuelve el siguiente token; llamar TokenFree(&t) después de usarlo. */
-Token GetNextToken(void);
-void TokenFree(Token *t);
+void scannerInitFromString(const char *s);
+// devuelve el siguiente token; llamar TokenFree(&t) después de usarlo
+Token getNextToken(void);
+void tokenFree(Token *t);
 
-/* utilidad para debug: imprime token en stdout */
-void PrintToken(const Token *t);
+// imprime token en stdout 
+void printToken(const Token *t);
 
 #endif /* SCANNER_H */

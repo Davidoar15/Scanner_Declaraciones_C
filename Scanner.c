@@ -1,73 +1,102 @@
 #include "Scanner.h"
-#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <ctype.h>
 
-// ---------- Estado (cadena) ---------- 
-static const char *scannerInput = NULL;
-static size_t scannerPosition = 0;
+// Estado: modo cadena (inputStr != NULL) o stdin
+static const char *inputStr = NULL;
+static size_t inputPos = 0;
 
-// Lista de keywords
+// pushback interno para stdin
+static int hasPushedChar = 0;
+static int pushedChar = 0;
+
+// KEYWORDS 
 static const char *keywords[] = {
     "void","char","short","int","long","float","double","signed","unsigned",
     "struct","union","enum","typedef","_Bool","_Complex","_Atomic","_Noreturn",
     "const","volatile","static","extern","register","inline","restrict",
     "for","while","do","if","else","return", NULL
 };
+
 static int isKeyword(const char *s) {
-    for (int i = 0; keywords[i]; ++i)
+    for (int i = 0; keywords[i]; ++i) {
         if (strcmp(s, keywords[i]) == 0) return 1;
+    }
     return 0;
 }
 
-// Inicializar scanner desde una cadena
-void ScannerInitFromString(const char *s) {
-    scannerInput = s ? s : "";
-    scannerPosition = 0;
+// Inicialización 
+void scannerInitFromString(const char *s) {
+    if (s) {
+        inputStr = s;
+        inputPos = 0;
+    } else {
+        inputStr = NULL;
+        inputPos = 0;
+    }
+    hasPushedChar = 0;
+    pushedChar = 0;
 }
 
-// para la lectura
-static char scannerPeek(void) {
-    if (!scannerInput) return '\0';
-    return scannerInput[scannerPosition];
-}
-static char scannerGet(void) {
-    char c = scannerPeek();
-    if (c != '\0') scannerPosition++;
-    return c;
-}
-static void scannerUnget(void) {
-    if (scannerPosition == 0) return;
-    scannerPosition--;
+// Lectura: peek/get
+static inline char peekChar(void) {
+    if (inputStr) {
+        return (inputStr[inputPos]) ? inputStr[inputPos] : '\0';
+    }
+    if (hasPushedChar) return (char)pushedChar;
+    int c = getchar();
+    if (c == EOF) return '\0';
+    hasPushedChar = 1;
+    pushedChar = c;
+    return (char)c;
 }
 
-/* strdup seguro */
-static char *strdupSafe(const char *s) {
-    if (!s) return NULL;
-    char *r = malloc(strlen(s) + 1);
-    if (r) strcpy(r, s);
-    return r;
+static inline char getChar(void) {
+    if (inputStr) {
+        char c = inputStr[inputPos];
+        if (c != '\0') inputPos++;
+        return c ? c : '\0';
+    }
+    if (hasPushedChar) {
+        hasPushedChar = 0;
+        return (char)pushedChar;
+    }
+    int c = getchar();
+    return (c == EOF) ? '\0' : (char)c;
 }
 
-// Crear token
+static char *xStrdup(const char *s) {
+    const char *src = s ? s : "";
+    size_t n = strlen(src) + 1;
+    char *dup = (char *)malloc(n);
+    if (!dup) {
+        fprintf(stderr, "Error: memoria insuficiente en xStrdup()\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(dup, src, n);
+    return dup;
+}
+
+// makeToken 
 static Token makeToken(TipoToken tipo, const char *lexema) {
     Token token;
     token.tipo = tipo;
-    token.lexema = strdupSafe(lexema ? lexema : "");
+    token.lexema = xStrdup(lexema ? lexema : "");
     token.valor.int_value = 0;
     return token;
 }
 
-void TokenFree(Token *token) {
+void tokenFree(Token *token) {
     if (!token) return;
-    if (token->lexema) { 
-        free(token->lexema); 
-        token->lexema = NULL; 
+    if (token->lexema) {
+        free(token->lexema);
+        token->lexema = NULL;
     }
 }
 
-// Impresión simple
-void PrintToken(const Token *token) {
+void printToken(const Token *token) {
     if (!token) return;
     const char *name = "UNKNOWN";
     switch (token->tipo) {
@@ -99,21 +128,20 @@ void PrintToken(const Token *token) {
         printf("%s \"%s\"\n", name, token->lexema);
 }
 
-/* Añade escape textual al buffer (dado que guardamos el lexema textual).
-   Devuelve 1 si OK, 0 en error. */
-static int appendEscapeToBuf(char *buf, int *bi, size_t buf_sz) {
-    char c = scannerGet();
+// Manejo de escapes en lexema
+static int appendEscapeToLexeme(char *lex, int *len, size_t cap) {
+    char c = getChar();
     if (c == '\0') return 0;
-    if (*bi + 2 >= (int)buf_sz) return 0;
-    buf[(*bi)++] = '\\';
-    buf[(*bi)++] = c;
-    buf[*bi] = '\0';
+    if (*len + 2 >= (int)cap) return 0;
+    lex[(*len)++] = '\\';
+    lex[(*len)++] = c;
+    lex[*len] = '\0';
     if (c == 'x' || c == 'X') {
         int cnt = 0;
-        while (cnt < 2 && isxdigit((unsigned char)scannerPeek())) {
-            if (*bi + 1 >= (int)buf_sz) return 0;
-            buf[(*bi)++] = scannerGet();
-            buf[*bi] = '\0';
+        while (cnt < 2 && isxdigit((unsigned char)peekChar())) {
+            if (*len + 1 >= (int)cap) return 0;
+            lex[(*len)++] = getChar();
+            lex[*len] = '\0';
             cnt++;
         }
         if (cnt == 0) return 0;
@@ -121,173 +149,174 @@ static int appendEscapeToBuf(char *buf, int *bi, size_t buf_sz) {
     return 1;
 }
 
-// GetNextToken
-Token GetNextToken(void) {
-    char buf[1024];
-    int bi = 0;
+// getNextToken: funcion scanner
+Token getNextToken(void) {
+    char lex[1024];
+    int llen = 0;
     char c;
 
-    // Saltar espacios 
+    // saltar espacios 
     while (1) {
-        c = scannerGet();
+        c = getChar();
         if (c == '\0') return makeToken(TOKEN_END, "<EOF>");
         if (!isspace((unsigned char)c)) break;
     }
 
     // IDENT / KEYWORD 
     if (isalpha((unsigned char)c) || c == '_') {
-        bi = 0;
-        buf[bi++] = c;
-        while (isalnum((unsigned char)scannerPeek()) || scannerPeek() == '_') {
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-            else scannerGet();
+        llen = 0;
+        lex[llen++] = c;
+        while (isalnum((unsigned char)peekChar()) || peekChar() == '_') {
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+            else getChar();
         }
-        buf[bi] = '\0';
-        if (isKeyword(buf)) return makeToken(TOKEN_KEYWORD, buf);
-        else return makeToken(TOKEN_IDENT, buf);
+        lex[llen] = '\0';
+        if (isKeyword(lex)) return makeToken(TOKEN_KEYWORD, lex);
+        else return makeToken(TOKEN_IDENT, lex);
     }
 
-    // Números (dec/hex/oct) y floats
-    if (isdigit((unsigned char)c) || (c == '.' && isdigit((unsigned char)scannerPeek()))) {
-        bi = 0;
-        int is_float = 0;
+    // Numeros (dec/hex/oct) y float 
+    if (isdigit((unsigned char)c) || (c == '.' && isdigit((unsigned char)peekChar()))) {
+        llen = 0;
+        int isFloat = 0;
         if (c == '0') {
-            buf[bi++] = c;
-            if (scannerPeek() == 'x' || scannerPeek() == 'X') {
-                buf[bi++] = scannerGet();
+            lex[llen++] = c;
+            if (peekChar() == 'x' || peekChar() == 'X') {
+                lex[llen++] = getChar();
                 int any = 0;
-                while (isxdigit((unsigned char)scannerPeek())) {
-                    if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                    else scannerGet();
+                while (isxdigit((unsigned char)peekChar())) {
+                    if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                    else getChar();
                     any = 1;
                 }
-                buf[bi] = '\0';
+                lex[llen] = '\0';
                 if (!any) return makeToken(TOKEN_ERROR, "Malformed hex");
-                Token t = makeToken(TOKEN_INT_HEX, buf);
-                t.valor.int_value = strtol(t.lexema, NULL, 0);
-                return t;
-            } else if (scannerPeek() >= '0' && scannerPeek() <= '7') {
-                while (scannerPeek() >= '0' && scannerPeek() <= '7') {
-                    if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                    else scannerGet();
+                Token token = makeToken(TOKEN_INT_HEX, lex);
+                token.valor.int_value = strtol(token.lexema, NULL, 0);
+                return token;
+            } else if (peekChar() >= '0' && peekChar() <= '7') {
+                while (peekChar() >= '0' && peekChar() <= '7') {
+                    if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                    else getChar();
                 }
-                buf[bi] = '\0';
-                Token t = makeToken(TOKEN_INT_OCTAL, buf);
-                t.valor.int_value = strtol(t.lexema, NULL, 8);
-                return t;
+                lex[llen] = '\0';
+                Token token = makeToken(TOKEN_INT_OCTAL, lex);
+                token.valor.int_value = strtol(token.lexema, NULL, 8);
+                return token;
             } else {
-                buf[bi] = '\0';
-                Token t = makeToken(TOKEN_INT_DEC, buf);
-                t.valor.int_value = 0;
-                return t;
+                lex[llen] = '\0';
+                Token token = makeToken(TOKEN_INT_DEC, lex);
+                token.valor.int_value = 0;
+                return token;
             }
         }
 
         if (c == '.') {
-            is_float = 1;
-            buf[bi++] = c;
-            while (isdigit((unsigned char)scannerPeek())) {
-                if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                else scannerGet();
+            isFloat = 1;
+            lex[llen++] = c;
+            while (isdigit((unsigned char)peekChar())) {
+                if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                else getChar();
             }
-            if (scannerPeek() == 'e' || scannerPeek() == 'E') {
-                buf[bi++] = scannerGet();
-                if (scannerPeek() == '+' || scannerPeek() == '-') buf[bi++] = scannerGet();
-                if (!isdigit((unsigned char)scannerPeek())) return makeToken(TOKEN_ERROR, "Malformed float exponent");
-                while (isdigit((unsigned char)scannerPeek())) {
-                    if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                    else scannerGet();
+            if (peekChar() == 'e' || peekChar() == 'E') {
+                lex[llen++] = getChar();
+                if (peekChar() == '+' || peekChar() == '-') lex[llen++] = getChar();
+                if (!isdigit((unsigned char)peekChar())) return makeToken(TOKEN_ERROR, "Malformed float exponent");
+                while (isdigit((unsigned char)peekChar())) {
+                    if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                    else getChar();
                 }
             }
-            buf[bi] = '\0';
-            Token t = makeToken(TOKEN_FLOAT, buf);
-            t.valor.float_value = strtod(t.lexema, NULL);
-            return t;
+            lex[llen] = '\0';
+            Token token = makeToken(TOKEN_FLOAT, lex);
+            token.valor.float_value = strtod(token.lexema, NULL);
+            return token;
         }
 
-        // empieza con 1..9 
-        buf[bi++] = c;
-        while (isdigit((unsigned char)scannerPeek())) {
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-            else scannerGet();
+        lex[llen++] = c;
+        while (isdigit((unsigned char)peekChar())) {
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+            else getChar();
         }
-        if (scannerPeek() == '.') {
-            is_float = 1;
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet(); else scannerGet();
-            while (isdigit((unsigned char)scannerPeek())) {
-                if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                else scannerGet();
+        if (peekChar() == '.') {
+            isFloat = 1;
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+            else getChar();
+            while (isdigit((unsigned char)peekChar())) {
+                if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                else getChar();
             }
         }
-        if (scannerPeek() == 'e' || scannerPeek() == 'E') {
-            is_float = 1;
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet(); else scannerGet();
-            if (scannerPeek() == '+' || scannerPeek() == '-') {
-                if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                else scannerGet();
+        if (peekChar() == 'e' || peekChar() == 'E') {
+            isFloat = 1;
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+            else getChar();
+            if (peekChar() == '+' || peekChar() == '-') {
+                if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                else getChar();
             }
-            if (!isdigit((unsigned char)scannerPeek())) return makeToken(TOKEN_ERROR, "Malformed exponent");
-            while (isdigit((unsigned char)scannerPeek())) {
-                if (bi < (int)sizeof(buf)-1) buf[bi++] = scannerGet();
-                else scannerGet();
+            if (!isdigit((unsigned char)peekChar())) return makeToken(TOKEN_ERROR, "Malformed exponent");
+            while (isdigit((unsigned char)peekChar())) {
+                if (llen < (int)sizeof(lex) - 1) lex[llen++] = getChar();
+                else getChar();
             }
         }
-        buf[bi] = '\0';
-        if (is_float) {
-            Token t = makeToken(TOKEN_FLOAT, buf);
-            t.valor.float_value = strtod(t.lexema, NULL);
-            return t;
+        lex[llen] = '\0';
+        if (isFloat) {
+            Token token = makeToken(TOKEN_FLOAT, lex);
+            token.valor.float_value = strtod(token.lexema, NULL);
+            return token;
         } else {
-            Token t = makeToken(TOKEN_INT_DEC, buf);
-            t.valor.int_value = strtol(t.lexema, NULL, 10);
-            return t;
+            Token token = makeToken(TOKEN_INT_DEC, lex);
+            token.valor.int_value = strtol(token.lexema, NULL, 10);
+            return token;
         }
     }
 
-    // STRING 
+    // String literal 
     if (c == '"') {
-        bi = 0;
-        if (bi < (int)sizeof(buf)-1) buf[bi++] = '"';
+        llen = 0;
+        if (llen < (int)sizeof(lex) - 1) lex[llen++] = '"';
         while (1) {
-            char d = scannerGet();
+            char d = getChar();
             if (d == '\0') return makeToken(TOKEN_ERROR, "Unterminated string literal");
             if (d == '"') {
-                if (bi < (int)sizeof(buf)-1) buf[bi++] = '"';
-                buf[bi] = '\0';
-                return makeToken(TOKEN_STRING_LITERAL, buf);
+                if (llen < (int)sizeof(lex) - 1) lex[llen++] = '"';
+                lex[llen] = '\0';
+                return makeToken(TOKEN_STRING_LITERAL, lex);
             }
             if (d == '\\') {
-                if (!appendEscapeToBuf(buf, &bi, sizeof(buf))) return makeToken(TOKEN_ERROR, "Invalid escape");
+                if (!appendEscapeToLexeme(lex, &llen, sizeof(lex))) return makeToken(TOKEN_ERROR, "Invalid escape");
             } else {
-                if (bi < (int)sizeof(buf)-1) buf[bi++] = d;
+                if (llen < (int)sizeof(lex) - 1) lex[llen++] = d;
             }
         }
     }
 
-    // CHAR 
+    // Char literal 
     if (c == '\'') {
-        bi = 0;
-        if (bi < (int)sizeof(buf)-1) buf[bi++] = '\'';
-        char d = scannerGet();
+        llen = 0;
+        if (llen < (int)sizeof(lex) - 1) lex[llen++] = '\'';
+        char d = getChar();
         if (d == '\0') return makeToken(TOKEN_ERROR, "Unterminated char literal");
         if (d == '\\') {
-            if (!appendEscapeToBuf(buf, &bi, sizeof(buf))) return makeToken(TOKEN_ERROR, "Invalid escape in char");
-            char closing = scannerGet();
+            if (!appendEscapeToLexeme(lex, &llen, sizeof(lex))) return makeToken(TOKEN_ERROR, "Invalid escape in char");
+            char closing = getChar();
             if (closing != '\'') return makeToken(TOKEN_ERROR, "Unterminated char literal");
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = '\'';
-            buf[bi] = '\0';
-            return makeToken(TOKEN_CHAR_LITERAL, buf);
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = '\'';
+            lex[llen] = '\0';
+            return makeToken(TOKEN_CHAR_LITERAL, lex);
         } else {
-            char closing = scannerGet();
+            char closing = getChar();
             if (closing != '\'') return makeToken(TOKEN_ERROR, "Unterminated char literal");
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = d;
-            if (bi < (int)sizeof(buf)-1) buf[bi++] = '\'';
-            buf[bi] = '\0';
-            return makeToken(TOKEN_CHAR_LITERAL, buf);
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = d;
+            if (llen < (int)sizeof(lex) - 1) lex[llen++] = '\'';
+            lex[llen] = '\0';
+            return makeToken(TOKEN_CHAR_LITERAL, lex);
         }
     }
 
-    // símbolos simples
+    // símbolos simples 
     switch (c) {
         case ';': return makeToken(TOKEN_SEMICOLON, ";");
         case ',': return makeToken(TOKEN_COMMA, ",");

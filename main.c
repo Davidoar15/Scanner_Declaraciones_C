@@ -7,16 +7,16 @@ int main(void) {
     printf("Escriba la declaracion: ");
     if (!fgets(linea, sizeof(linea), stdin)) return 0;
 
-    ScannerInitFromString(linea);
+    scannerInitFromString(linea);
 
     while (1) {
-        Token token = GetNextToken();
-        PrintToken(&token);
+        Token token = getNextToken();
+        printToken(&token);
         if (token.tipo == TOKEN_END || token.tipo == TOKEN_ERROR) {
-            TokenFree(&token);
+            tokenFree(&token);
             break;
         }
-        TokenFree(&token);
+        tokenFree(&token);
     }
     return 0;
 }
