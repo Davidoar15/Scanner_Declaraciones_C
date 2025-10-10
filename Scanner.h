@@ -27,22 +27,25 @@ typedef enum {
 } TipoToken;
 
 typedef union {
+    char **ident;
     long int_value;
     double float_value;
 } ValorToken;
 
 typedef struct {
-    char *lexema;      
+    const char *lexema;      
     TipoToken tipo;
     ValorToken valor; 
 } Token;
 
-void scannerInitFromString(const char *s);
-// devuelve el siguiente token; llamar TokenFree(&t) después de usarlo
-Token getNextToken(void);
-void tokenFree(Token *t);
+/* Inicializa el scanner para leer desde una cadena (si s != NULL) */
+void iniciarScannerDesdeCadena(const char *s);
 
-// imprime token en stdout 
+/* devuelve el siguiente token; antes: llamar a tokenFree(&t).
+   ahora tokenFree es no-op porque no usamos heap por token. */
+Token getNextToken(void);
+
+/* imprime token en stdout */
 void printToken(const Token *t);
 
 #endif /* SCANNER_H */
