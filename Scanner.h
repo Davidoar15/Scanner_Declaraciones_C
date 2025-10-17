@@ -8,6 +8,7 @@ typedef enum {
     TOKEN_ERROR,
     TOKEN_END,
     TOKEN_IDENT,
+    TOKEN_INVOKE,
     TOKEN_KEYWORD,
     TOKEN_INT_DEC,
     TOKEN_INT_HEX,

@@ -42,10 +42,11 @@ static int charReinsertado = 0;
 
 // Keywords
 static const char *keywords[] = {
-    "void","char","short","int","long","float","double","signed","unsigned",
-    "struct","union","enum","typedef","_Bool","_Complex","_Atomic","_Noreturn",
-    "const","volatile","static","extern","register","inline","restrict",
-    "for","while","do","if","else","return", NULL
+    "void", "char", "short", "int", "long", "float", "double",
+    "signed", "unsigned", "struct", "union", "enum", "typedef",
+    "_Bool", "_Complex", "_Atomic", "_Noreturn", "const", 
+    "volatile", "static", "extern", "register", "inline",
+    "restrict", "for", "while", "do", "if", "else", "return", NULL
 };
 
 static int esKeyword(const char *string) {
@@ -74,7 +75,7 @@ static inline char verProximoCaracter(void) {
         return (cadenaEntrada[posEntrada]) ? cadenaEntrada[posEntrada] : '\0';
     }
 
-    if (tieneCharReinsertado) return (char)charReinsertado;
+    if (tieneCharReinsertado) return charReinsertado;
 
     int c = getchar();
     if (c == EOF) return '\0';
@@ -82,7 +83,7 @@ static inline char verProximoCaracter(void) {
     tieneCharReinsertado = 1;
     charReinsertado = c;
 
-    return (char)c;
+    return c;
 }
 
 static inline char obtenerCaracter(void) {
@@ -94,12 +95,12 @@ static inline char obtenerCaracter(void) {
 
     if (tieneCharReinsertado) {
         tieneCharReinsertado = 0;
-        return (char)charReinsertado;
+        return charReinsertado;
     }
 
     int c = getchar();
 
-    return (c == EOF) ? '\0' : (char)c;
+    return (c == EOF) ? '\0' : c;
 }
 
 // Manejo de escapes para literales
@@ -107,7 +108,7 @@ static int agregarEscapeAlLexema(char *lex, int *len, size_t cap) {
     char c = obtenerCaracter();
 
     if (c == '\0') return 0;
-    if (*len + 2 >= (int)cap) return 0;
+    if (*len + 2 >= cap) return 0;
 
     lex[(*len)++] = '\\';
     lex[(*len)++] = c;
@@ -116,7 +117,7 @@ static int agregarEscapeAlLexema(char *lex, int *len, size_t cap) {
     if (c == 'x' || c == 'X') {
         int cnt = 0;
         while (cnt < 2 && isxdigit((unsigned char)verProximoCaracter())) {
-            if (*len + 1 >= (int)cap) return 0;
+            if (*len + 1 >= cap) return 0;
 
             lex[(*len)++] = obtenerCaracter();
             lex[*len] = '\0';
@@ -142,7 +143,7 @@ static Token crearTokenConLexema(TipoToken tipo, const char *lexema) {
     return token;
 }
 
-// getNextToken. Funci'on principal del Scanner
+// getNextToken. Funcion principal del Scanner
 Token getNextToken(void) {
     char lex[MAX_LEXEMA];
     int llen = 0;
@@ -152,7 +153,7 @@ Token getNextToken(void) {
     while (1) {
         c = obtenerCaracter();
         if (c == '\0') return crearTokenConLexema(TOKEN_END, "<EOF>");
-        if (!isspace((unsigned char)c)) break;
+        if (!isspace((unsigned char)c)) break; 
     }
 
     // Ident / Keyword
@@ -161,7 +162,7 @@ Token getNextToken(void) {
         lex[llen++] = c;
 
         while (isalnum((unsigned char)verProximoCaracter()) || verProximoCaracter() == '_') {
-            if (llen < (int)sizeof(lex) - 1) {
+            if (llen < sizeof(lex) - 1) {
                 lex[llen++] = obtenerCaracter();
             } else {
                 obtenerCaracter();
@@ -169,11 +170,12 @@ Token getNextToken(void) {
         }
 
         lex[llen] = '\0';
+
         if (esKeyword(lex)) {
-            return crearTokenConLexema(TOKEN_KEYWORD, lex);  
+            return crearTokenConLexema(TOKEN_KEYWORD, lex);
         } else {
             return crearTokenConLexema(TOKEN_IDENT, lex);
-        } 
+        }
     }
 
     // Numeros (dec/hex/oct) y float
@@ -189,7 +191,7 @@ Token getNextToken(void) {
                 int any = 0;
 
                 while (isxdigit((unsigned char)verProximoCaracter())) {
-                    if (llen < (int)sizeof(lex) - 1) {
+                    if (llen < sizeof(lex) - 1) {
                         lex[llen++] = obtenerCaracter();
                     } else {
                         obtenerCaracter();
@@ -207,7 +209,7 @@ Token getNextToken(void) {
                 return token;
             } else if (verProximoCaracter() >= '0' && verProximoCaracter() <= '7') {
                 while (verProximoCaracter() >= '0' && verProximoCaracter() <= '7') {
-                    if (llen < (int)sizeof(lex) - 1) {
+                    if (llen < sizeof(lex) - 1) {
                         lex[llen++] = obtenerCaracter();
                     } else {
                         obtenerCaracter();
@@ -233,7 +235,7 @@ Token getNextToken(void) {
             lex[llen++] = c;
 
             while (isdigit((unsigned char)verProximoCaracter())) {
-                if (llen < (int)sizeof(lex) - 1) {
+                if (llen < sizeof(lex) - 1) {
                     lex[llen++] = obtenerCaracter();
                 } else {
                     obtenerCaracter();
@@ -248,7 +250,7 @@ Token getNextToken(void) {
                 if (!isdigit((unsigned char)verProximoCaracter())) return crearTokenConLexema(TOKEN_ERROR, "Exponente flotante mal formado");
 
                 while (isdigit((unsigned char)verProximoCaracter())) {
-                    if (llen < (int)sizeof(lex) - 1) {
+                    if (llen < sizeof(lex) - 1) {
                         lex[llen++] = obtenerCaracter();
                     } else {
                         obtenerCaracter();
@@ -265,7 +267,7 @@ Token getNextToken(void) {
 
         lex[llen++] = c;
         while (isdigit((unsigned char)verProximoCaracter())) {
-            if (llen < (int)sizeof(lex) - 1) {
+            if (llen < sizeof(lex) - 1) {
                 lex[llen++] = obtenerCaracter();
             } else {
                 obtenerCaracter();
@@ -275,14 +277,14 @@ Token getNextToken(void) {
         if (verProximoCaracter() == '.') {
             esFloat = 1;
 
-            if (llen < (int)sizeof(lex) - 1) {
+            if (llen < sizeof(lex) - 1) {
                 lex[llen++] = obtenerCaracter();
             } else {
                 obtenerCaracter();
             }
 
             while (isdigit((unsigned char)verProximoCaracter())) {
-                if (llen < (int)sizeof(lex) - 1) {
+                if (llen < sizeof(lex) - 1) {
                     lex[llen++] = obtenerCaracter();
                 } else {
                     obtenerCaracter();
@@ -293,14 +295,14 @@ Token getNextToken(void) {
         if (verProximoCaracter() == 'e' || verProximoCaracter() == 'E') {
             esFloat = 1;
 
-            if (llen < (int)sizeof(lex) - 1) {
+            if (llen < sizeof(lex) - 1) {
                 lex[llen++] = obtenerCaracter();
             } else {
                 obtenerCaracter();
             }
 
             if (verProximoCaracter() == '+' || verProximoCaracter() == '-') {
-                if (llen < (int)sizeof(lex) - 1) {
+                if (llen < sizeof(lex) - 1) {
                     lex[llen++] = obtenerCaracter();
                 } else {
                     obtenerCaracter();
@@ -309,7 +311,7 @@ Token getNextToken(void) {
 
             if (!isdigit((unsigned char)verProximoCaracter())) return crearTokenConLexema(TOKEN_ERROR, "Exponente mal formado");
             while (isdigit((unsigned char)verProximoCaracter())) {
-                if (llen < (int)sizeof(lex) - 1) {
+                if (llen < sizeof(lex) - 1) {
                     lex[llen++] = obtenerCaracter();
                 } else {
                     obtenerCaracter();
@@ -334,14 +336,14 @@ Token getNextToken(void) {
     // String literal
     if (c == '"') {
         llen = 0;
-        if (llen < (int)sizeof(lex) - 1) lex[llen++] = '"';
+        if (llen < sizeof(lex) - 1) lex[llen++] = '"';
 
         while (1) {
             char d = obtenerCaracter();
             if (d == '\0') return crearTokenConLexema(TOKEN_ERROR, "Literal de string sin terminacion");
 
             if (d == '"') {
-                if (llen < (int)sizeof(lex) - 1) lex[llen++] = '"';
+                if (llen < sizeof(lex) - 1) lex[llen++] = '"';
 
                 lex[llen] = '\0';
 
@@ -351,7 +353,7 @@ Token getNextToken(void) {
             if (d == '\\') {
                 if (!agregarEscapeAlLexema(lex, &llen, sizeof(lex))) return crearTokenConLexema(TOKEN_ERROR, "Escape no valido");
             } else {
-                if (llen < (int)sizeof(lex) - 1) lex[llen++] = d;
+                if (llen < sizeof(lex) - 1) lex[llen++] = d;
             }
         }
     }
@@ -359,7 +361,7 @@ Token getNextToken(void) {
     // Char literal
     if (c == '\'') {
         llen = 0;
-        if (llen < (int)sizeof(lex) - 1) lex[llen++] = '\'';
+        if (llen < sizeof(lex) - 1) lex[llen++] = '\'';
 
         char d = obtenerCaracter();
         if (d == '\0') return crearTokenConLexema(TOKEN_ERROR, "Literal de char no terminado");
@@ -370,7 +372,7 @@ Token getNextToken(void) {
             char closing = obtenerCaracter();
             if (closing != '\'') return crearTokenConLexema(TOKEN_ERROR, "Literal de char incompleto");
 
-            if (llen < (int)sizeof(lex) - 1) lex[llen++] = '\'';
+            if (llen < sizeof(lex) - 1) lex[llen++] = '\'';
 
             lex[llen] = '\0';
 
@@ -379,9 +381,9 @@ Token getNextToken(void) {
             char closing = obtenerCaracter();
             if (closing != '\'') return crearTokenConLexema(TOKEN_ERROR, "Literal de char incompleto");
 
-            if (llen < (int)sizeof(lex) - 1) lex[llen++] = d;
+            if (llen < sizeof(lex) - 1) lex[llen++] = d;
 
-            if (llen < (int)sizeof(lex) - 1) lex[llen++] = '\'';
+            if (llen < sizeof(lex) - 1) lex[llen++] = '\'';
 
             lex[llen] = '\0';
 
@@ -393,7 +395,13 @@ Token getNextToken(void) {
     switch (c) {
         case ';': return crearTokenConLexema(TOKEN_SEMICOLON, ";");
         case ',': return crearTokenConLexema(TOKEN_COMMA, ",");
-        case '(': return crearTokenConLexema(TOKEN_LPAREN, "(");
+        case '(' : {
+            if (verProximoCaracter() == ')') {
+                obtenerCaracter();
+                return crearTokenConLexema(TOKEN_INVOKE, "()");
+            }
+            return crearTokenConLexema(TOKEN_LPAREN, "(");
+        }
         case ')': return crearTokenConLexema(TOKEN_RPAREN, ")");
         case '[': return crearTokenConLexema(TOKEN_LBRACKET, "[");
         case ']': return crearTokenConLexema(TOKEN_RBRACKET, "]");
@@ -433,6 +441,7 @@ void printToken(const Token *token) {
         case TOKEN_RBRACKET: nombre = "RBRACKET"; break;
         case TOKEN_ASTERISK: nombre = "ASTERISK"; break;
         case TOKEN_ASSIGN: nombre = "ASSIGN"; break;
+        case TOKEN_INVOKE: nombre = "INVOKE"; break;
         case TOKEN_OTHER: nombre = "OTHER"; break;
     }
     if (token->tipo == TOKEN_INT_DEC || token->tipo == TOKEN_INT_HEX || token->tipo == TOKEN_INT_OCTAL) {
