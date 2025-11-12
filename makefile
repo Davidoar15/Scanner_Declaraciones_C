@@ -8,6 +8,7 @@ RM = rm -rf
 
 BIN_DIR = bin
 OBJ_DIR = obj
+RES_DIR = result
 
 TARGET_SCANNER = $(BIN_DIR)/scanner
 TARGET_PARSER = $(BIN_DIR)/parser
@@ -42,7 +43,11 @@ $(OBJ_DIR)/Parser.o: Parser.c parser.h Scanner.h
 $(OBJ_DIR)/mainScanner.o: mainScanner.c Scanner.h
 $(OBJ_DIR)/Scanner.o: Scanner.c Scanner.h
 
+parser: 
+	@mkdir -p $(RES_DIR) 
+	./bin/parser declaraciones.txt
+
 .PHONY: clean
 clean:
-	$(RM) $(BIN_DIR) $(OBJ_DIR)
-	@echo "--- Directorios 'bin' y 'obj' eliminados. ---"
+	$(RM) $(BIN_DIR) $(OBJ_DIR) $(RES_DIR)
+	@echo "--- Directorios 'bin', 'obj' y 'result' eliminados. ---"
