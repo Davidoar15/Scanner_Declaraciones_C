@@ -75,11 +75,11 @@ Termina siendo un sistema de reglas de derivación, escrito como:
 O:
 ```
 unidad :
-    expresion
-    (expresion-opcional)
+      expresion
+    | (expresion-opcional)
 ```
 
-donde `unidad` es un **no-terminal**, `::=` / `:` se lee como "se define como" o "produce", y la "expresion", "expresion-opcional", consiste en secuencias de símbolos o secuencias separadas por la barra vertical `|` o un salto de línea, indicando una "opcion", el conjunto es una posible substitución para el símbolo a la izquierda. Los símbolos que nunca aparecen en un lado izquierdo son **terminales**.
+donde `unidad` es un **no-terminal**, `::=` / `:` se lee como "se define como" o "produce", y la "expresion", "expresion-opcional", consiste en secuencias de símbolos o secuencias separadas por la barra vertical `|`, indicando una "opcion", el conjunto es una posible substitución para el símbolo a la izquierda. Los símbolos que nunca aparecen en un lado izquierdo son **terminales**.
 
 ## Definición Máquina de Estados (Autómata Finito)
 
@@ -140,41 +140,51 @@ Su trabajo no es leer caracteres sino interpretar tokens: aplicar reglas sintác
 
 ## BNF Parser
 ```
+UT :
+      declaracion
+    | UT declaracion
+    ;
+
 declaracion : 
-    tipo declarador
+    tipo declarador TOKEN_SEMICOLON ;
 
 tipo : 
-    TOKEN_IDENT
-    KEYWORD
+      TOKEN_IDENT
+    | KEYWORD
+    ;
 
 declarador :   
-    secuencia-punteros declarador-directo
+    (secuencia-punteros) declarador-directo ;
 
 secuencia-punteros :     
-    TOKEN_ASTERISK secuencia-punteros>
-    ε
+    TOKEN_ASTERISK (secuencia-punteros) ;
+
 
 declarador-directo : 
-    TOKEN_LPAREN declarador TOKEN_RPAREN 
+      TOKEN_LPAREN declarador TOKEN_RPAREN 
     TOKEN_IDENT 
-    declarador-directo TOKEN_LBRACKET expresion TOKEN_RBRACKET 
-    declarador-directo TOKEN_LPAREN (parametros) TOKEN_RPAREN
+    | declarador-directo TOKEN_LBRACKET expresion TOKEN_RBRACKET 
+    | declarador-directo TOKEN_LPAREN (parametros) TOKEN_RPAREN
+    ;
 
 expresion : 
-    NUMBER_INT 
-    TOKEN_IDENT
+      NUMBER_INT 
+    | TOKEN_IDENT
+    ;
 
 parametros : 
-    parametro ( COMMA parametro )
+    parametro ( COMMA parametro ) ;
 
 parametro : 
-    tipo (declarador)
+    tipo (declarador) ;
 
 NUMBER_INT : 
-    TOKEN_INT_DEC 
-    TOKEN_INT_HEX 
-    TOKEN_INT_OCTAL
+      TOKEN_INT_DEC 
+    | TOKEN_INT_HEX 
+    | TOKEN_INT_OCTAL
+    ;
 
 KEYWORD : 
     int | char | short | long | float | double | void | signed | unsigned | typedef | struct | unión | enum | const | volatile | static | extern | register | inline | restrict | _Bool | _Complex | _Atomic | _Noreturn
+    ;
 ```

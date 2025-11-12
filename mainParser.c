@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 {
     char linea[4096];
     char descripcion[2048];
-
+// el FILE no es necesario, debe leer de stdin/stdout
     if (argc != 2)
     {
         fprintf(stderr, "Uso: %s <nombre_archivo>\n", argv[0]);
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
         fclose(fin);
         return ERROR;
     }
-
+//en el Parser.c, Esto debe ser una funcion que parsee la UT unidad de traduccion
     while (fgets(linea, sizeof(linea), fin) != NULL)
     {   
         iniciarScannerDesdeCadena(linea);
