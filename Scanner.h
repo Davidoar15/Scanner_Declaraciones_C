@@ -2,6 +2,9 @@
 #define SCANNER_H
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 // Tipos de token (sin línea/columna)
 typedef enum {

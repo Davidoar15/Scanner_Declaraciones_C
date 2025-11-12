@@ -1,6 +1,4 @@
-#include "parser.h"
-#include "Scanner.h"
-#include <string.h>
+#include "Parser.h"
 
 #define DIR_ENTRADA "test/"
 #define DIR_SALIDA "result/"

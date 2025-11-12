@@ -1,9 +1,4 @@
-#include "parser.h"
 #include "Scanner.h"
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
 
 #define MAX_LEXEMA 256
 #define POOL_SLOTS 128

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "Scanner.h"
 
 int main(void) {

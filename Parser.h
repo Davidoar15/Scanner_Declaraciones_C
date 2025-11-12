@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include "Scanner.h"
-
 typedef enum {
     OK,
     ERROR_SINTACTICO,
