@@ -37,10 +37,6 @@ static char **poolLexemaPunteroDoble(int index) {
 static const char *cadenaEntrada = NULL;
 static size_t posEntrada = 0;
 
-// Pushback interno para stdin
-static int tieneCharReinsertado = 0;
-static int charReinsertado = 0;
-
 // Keywords
 static const char *keywords[] = {
     "void", "char", "short", "int", "long", "float", "double",
@@ -66,8 +62,6 @@ void iniciarScannerDesdeCadena(const char *string) {
         cadenaEntrada = NULL;
         posEntrada = 0;
     }
-    tieneCharReinsertado = 0;
-    charReinsertado = 0;
 }
 
 // Lectura: peek / get 
@@ -76,14 +70,9 @@ static inline char verProximoCaracter(void) {
         return (cadenaEntrada[posEntrada]) ? cadenaEntrada[posEntrada] : '\0';
     }
 
-    if (tieneCharReinsertado) return charReinsertado;
-
     int c = getchar();
     if (c == EOF) return '\0';
-
-    tieneCharReinsertado = 1;
-    charReinsertado = c;
-
+    ungetc(c, stdin);
     return c;
 }
 
@@ -94,13 +83,7 @@ static inline char obtenerCaracter(void) {
         return c ? c : '\0';
     }
 
-    if (tieneCharReinsertado) {
-        tieneCharReinsertado = 0;
-        return charReinsertado;
-    }
-
     int c = getchar();
-
     return (c == EOF) ? '\0' : c;
 }
 
