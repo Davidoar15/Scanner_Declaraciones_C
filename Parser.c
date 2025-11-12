@@ -1,4 +1,4 @@
-#include "Parser.h"
+#include "parser.h"
 
 static Token currentToken;
 
@@ -22,6 +22,9 @@ ResultadoParseo parseDcl(char *outDescription, size_t maxLen)
 
     // leer primer token
     nextToken();
+
+    if (currentToken.tipo == TOKEN_END)
+        return ERROR_LINEA_VACIA;
 
     char datatype[256] = {0};
     if (currentToken.tipo == TOKEN_KEYWORD || currentToken.tipo == TOKEN_IDENT)
@@ -234,16 +237,4 @@ static void dirdcl(char *out, size_t maxLen, int *error)
             }
         }
     }
-}
-
-int esLineaVacia(const char* linea)
-{
-    const char* p = linea;
-    while (*p)
-    {
-        if (!isspace((unsigned char)*p))
-            return 0;
-        p++;
-    }
-    return 1;
 }
