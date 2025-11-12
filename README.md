@@ -132,11 +132,11 @@ Qo = START
 
 ## Parser
 
-
+El **Parser** (analizador sintáctico) es la etapa del compilador que toma la secuencia de tokens generada por el Scanner y verifica que esos tokens formen construcciones válidas según la gramática del lenguaje. 
 
 ## Objetivo
 
-
+Su trabajo no es leer caracteres sino interpretar tokens: aplicar reglas sintácticas para reconocer declaraciones, construir una representación estructurada (como un árbol de derivación) y detectar errores sintácticos.
 
 ## BNF Parser
 ```
