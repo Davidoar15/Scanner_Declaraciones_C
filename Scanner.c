@@ -1,8 +1,5 @@
 #include "Scanner.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <ctype.h>
+
 
 #define MAX_LEXEMA 256
 #define POOL_SLOTS 128
@@ -104,7 +101,7 @@ static inline char obtenerCaracter(void) {
 }
 
 // Manejo de escapes para literales
-static int agregarEscapeAlLexema(char *lex, int *len, size_t cap) {
+static int agregarEscapeAlLexema(char *lex, size_t *len, size_t cap) {
     char c = obtenerCaracter();
 
     if (c == '\0') return 0;
@@ -143,271 +140,225 @@ static Token crearTokenConLexema(TipoToken tipo, const char *lexema) {
     return token;
 }
 
-// getNextToken. Funcion principal del Scanner
-Token getNextToken(void) {
+Token scanIdentOKeyword(char c){
     char lex[MAX_LEXEMA];
-    int llen = 0;
-    char c;
+    size_t len = 0;
+    lex[len++] = c;
 
-    // Saltar espacios
-    while (1) {
-        c = obtenerCaracter();
-        if (c == '\0') return crearTokenConLexema(TOKEN_END, "<EOF>");
-        if (!isspace((unsigned char)c)) break; 
+    while (isalnum((unsigned char)verProximoCaracter()) || verProximoCaracter() == '_') {
+        if (len < sizeof(lex) - 1)
+            lex[len++] = obtenerCaracter();
+        else
+            obtenerCaracter();
+    }
+    lex[len] = '\0';
+
+    if (esKeyword(lex))
+        return crearTokenConLexema(TOKEN_KEYWORD, lex);
+    return crearTokenConLexema(TOKEN_IDENT, lex);
+}
+
+Token scanHexNumber(char *lex, size_t len) {
+    lex[len++] = obtenerCaracter();
+    int any = 0;
+
+    while (isxdigit((unsigned char)verProximoCaracter())){
+        if(len < sizeof(lex) - 1)
+            lex[len++] = obtenerCaracter();
+        else
+            obtenerCaracter();
+        any = 1;
+    }
+    
+    lex[len] = '\0';
+
+    if (!any)
+        return crearTokenConLexema(TOKEN_ERROR, "Hexadecimal mal formado");
+    
+    Token token = crearTokenConLexema(TOKEN_INT_HEX, lex);
+    token.valor.int_value = strtol(token.lexema, NULL, 0);
+    return token;
+}
+
+Token scanOctalNumber(char *lex, size_t len){
+    while (verProximoCaracter() >= '0' && verProximoCaracter() <= '7'){
+        if (len < sizeof(lex) - 1)
+            lex[len++] = obtenerCaracter();
+        else
+            obtenerCaracter();
+    }
+    //Se omite toda la parte del chequeo por si no es ./e/E ya que se hace en scanNumber
+    lex[len] = '\0';
+    Token token = crearTokenConLexema(TOKEN_INT_OCTAL, lex);
+    token.valor.int_value = strtol(token.lexema, NULL, 8);
+    return token;
+
+}
+
+Token scanFloatODecimal(char *lex, size_t len)
+{
+    int esFloat = 0;
+
+    if (lex[0] == '.') 
+        esFloat = 1;
+
+    while (isdigit((unsigned char)verProximoCaracter()) && len < sizeof(lex) - 1)
+        lex[len++] = obtenerCaracter();
+
+    if (verProximoCaracter() == '.')
+    {
+        esFloat = 1;
+        lex[len++] = obtenerCaracter();
+        while (isdigit((unsigned char)verProximoCaracter()) && len < sizeof(lex) - 1)
+            lex[len++] = obtenerCaracter();
     }
 
-    // Ident / Keyword
-    if (isalpha((unsigned char)c) || c == '_') {
-        llen = 0;
-        lex[llen++] = c;
+    if (verProximoCaracter() == 'e' || verProximoCaracter() == 'E')
+    {
+        esFloat = 1;
+        lex[len++] = obtenerCaracter();
+        if (verProximoCaracter() == '+' || verProximoCaracter() == '-')
+            lex[len++] = obtenerCaracter();
 
-        while (isalnum((unsigned char)verProximoCaracter()) || verProximoCaracter() == '_') {
-            if (llen < sizeof(lex) - 1) {
-                lex[llen++] = obtenerCaracter();
-            } else {
-                obtenerCaracter();
-            }
+        if (!isdigit((unsigned char)verProximoCaracter()))
+        {
+            lex[len] = '\0'; // Asegurar terminación para el mensaje de error
+            return crearTokenConLexema(TOKEN_ERROR, "Exponente flotante mal formado");
         }
-
-        lex[llen] = '\0';
-
-        if (esKeyword(lex)) {
-            return crearTokenConLexema(TOKEN_KEYWORD, lex);
-        } else {
-            return crearTokenConLexema(TOKEN_IDENT, lex);
-        }
+        
+        // Si hay un dígito, consumimos todos los que sigan
+        while (isdigit((unsigned char)verProximoCaracter()) && len < sizeof(lex) - 1)
+            lex[len++] = obtenerCaracter();
     }
 
-    // Numeros (dec/hex/oct) y float
-    if (isdigit((unsigned char)c) || (c == '.' && isdigit((unsigned char)verProximoCaracter()))) {
-        llen = 0;
-        int esFloat = 0;
+    lex[len] = '\0';
 
-        if (c == '0') {
-            lex[llen++] = c;
-
-            if (verProximoCaracter() == 'x' || verProximoCaracter() == 'X') {
-                lex[llen++] = obtenerCaracter();
-                int any = 0;
-
-                while (isxdigit((unsigned char)verProximoCaracter())) {
-                    if (llen < sizeof(lex) - 1) {
-                        lex[llen++] = obtenerCaracter();
-                    } else {
-                        obtenerCaracter();
-                    }
-                    any = 1;
-                }
-
-                lex[llen] = '\0';
-
-                if (!any) return crearTokenConLexema(TOKEN_ERROR, "Hexadecimal mal formado");
-
-                Token token = crearTokenConLexema(TOKEN_INT_HEX, lex);
-                token.valor.int_value = strtol(token.lexema, NULL, 0);
-
-                return token;
-            } else if (verProximoCaracter() >= '0' && verProximoCaracter() <= '7') {
-                while (verProximoCaracter() >= '0' && verProximoCaracter() <= '7') {
-                    if (llen < sizeof(lex) - 1) {
-                        lex[llen++] = obtenerCaracter();
-                    } else {
-                        obtenerCaracter();
-                    }
-                }
-
-                lex[llen] = '\0';
-                Token token = crearTokenConLexema(TOKEN_INT_OCTAL, lex);
-                token.valor.int_value = strtol(token.lexema, NULL, 8);
-
-                return token;
-            } else {
-                lex[llen] = '\0';
-                Token token = crearTokenConLexema(TOKEN_INT_DEC, lex);
-                token.valor.int_value = 0;
-
-                return token;
-            }
-        }
-
-        if (c == '.') {
-            esFloat = 1;
-            lex[llen++] = c;
-
-            while (isdigit((unsigned char)verProximoCaracter())) {
-                if (llen < sizeof(lex) - 1) {
-                    lex[llen++] = obtenerCaracter();
-                } else {
-                    obtenerCaracter();
-                }
-            }
-
-            if (verProximoCaracter() == 'e' || verProximoCaracter() == 'E') {
-                lex[llen++] = obtenerCaracter();
-
-                if (verProximoCaracter() == '+' || verProximoCaracter() == '-') lex[llen++] = obtenerCaracter();
-
-                if (!isdigit((unsigned char)verProximoCaracter())) return crearTokenConLexema(TOKEN_ERROR, "Exponente flotante mal formado");
-
-                while (isdigit((unsigned char)verProximoCaracter())) {
-                    if (llen < sizeof(lex) - 1) {
-                        lex[llen++] = obtenerCaracter();
-                    } else {
-                        obtenerCaracter();
-                    }
-                }
-            }
-
-            lex[llen] = '\0';
-            Token token = crearTokenConLexema(TOKEN_FLOAT, lex);
-            token.valor.float_value = strtod(token.lexema, NULL);
-
-            return token;
-        }
-
-        lex[llen++] = c;
-        while (isdigit((unsigned char)verProximoCaracter())) {
-            if (llen < sizeof(lex) - 1) {
-                lex[llen++] = obtenerCaracter();
-            } else {
-                obtenerCaracter();
-            }
-        }
-
-        if (verProximoCaracter() == '.') {
-            esFloat = 1;
-
-            if (llen < sizeof(lex) - 1) {
-                lex[llen++] = obtenerCaracter();
-            } else {
-                obtenerCaracter();
-            }
-
-            while (isdigit((unsigned char)verProximoCaracter())) {
-                if (llen < sizeof(lex) - 1) {
-                    lex[llen++] = obtenerCaracter();
-                } else {
-                    obtenerCaracter();
-                }
-            }
-        }
-
-        if (verProximoCaracter() == 'e' || verProximoCaracter() == 'E') {
-            esFloat = 1;
-
-            if (llen < sizeof(lex) - 1) {
-                lex[llen++] = obtenerCaracter();
-            } else {
-                obtenerCaracter();
-            }
-
-            if (verProximoCaracter() == '+' || verProximoCaracter() == '-') {
-                if (llen < sizeof(lex) - 1) {
-                    lex[llen++] = obtenerCaracter();
-                } else {
-                    obtenerCaracter();
-                }
-            }
-
-            if (!isdigit((unsigned char)verProximoCaracter())) return crearTokenConLexema(TOKEN_ERROR, "Exponente mal formado");
-            while (isdigit((unsigned char)verProximoCaracter())) {
-                if (llen < sizeof(lex) - 1) {
-                    lex[llen++] = obtenerCaracter();
-                } else {
-                    obtenerCaracter();
-                }
-            }
-        }
-
-        lex[llen] = '\0';
-        if (esFloat) {
-            Token token = crearTokenConLexema(TOKEN_FLOAT, lex);
-            token.valor.float_value = strtod(token.lexema, NULL);
-
-            return token;
-        } else {
-            Token token = crearTokenConLexema(TOKEN_INT_DEC, lex);
-            token.valor.int_value = strtol(token.lexema, NULL, 10);
-
-            return token;
-        }
+    if (esFloat) {
+        Token token = crearTokenConLexema(TOKEN_FLOAT, lex);
+        token.valor.float_value = strtod(token.lexema, NULL);
+        return token;
     }
 
-    // String literal
-    if (c == '"') {
-        llen = 0;
-        if (llen < sizeof(lex) - 1) lex[llen++] = '"';
+    Token token = crearTokenConLexema(TOKEN_INT_DEC, lex);
+    token.valor.int_value = strtol(token.lexema, NULL, 10);
+    return token;
+}
 
-        while (1) {
-            char d = obtenerCaracter();
-            if (d == '\0') return crearTokenConLexema(TOKEN_ERROR, "Literal de string sin terminacion");
+Token scanStringLiteral()
+{
+    char lex[MAX_LEXEMA];
+    size_t len = 0;
 
-            if (d == '"') {
-                if (llen < sizeof(lex) - 1) lex[llen++] = '"';
+    if(len < sizeof(lex) - 1)
+        lex[len++] = '"';
 
-                lex[llen] = '\0';
-
-                return crearTokenConLexema(TOKEN_STRING_LITERAL, lex);
-            }
-
-            if (d == '\\') {
-                if (!agregarEscapeAlLexema(lex, &llen, sizeof(lex))) return crearTokenConLexema(TOKEN_ERROR, "Escape no valido");
-            } else {
-                if (llen < sizeof(lex) - 1) lex[llen++] = d;
-            }
-        }
-    }
-
-    // Char literal
-    if (c == '\'') {
-        llen = 0;
-        if (llen < sizeof(lex) - 1) lex[llen++] = '\'';
-
+    while(1)
+    {
         char d = obtenerCaracter();
-        if (d == '\0') return crearTokenConLexema(TOKEN_ERROR, "Literal de char no terminado");
+        if (d == '\0')
+            return crearTokenConLexema(TOKEN_ERROR, "Literal de string sin terminacion");
 
-        if (d == '\\') {
-            if (!agregarEscapeAlLexema(lex, &llen, sizeof(lex))) return crearTokenConLexema(TOKEN_ERROR, "Escape no valido en char");
+        if(d == '"')
+        {
+            if (len < sizeof(lex) - 1)
+                    lex[len++] = '"';
 
-            char closing = obtenerCaracter();
-            if (closing != '\'') return crearTokenConLexema(TOKEN_ERROR, "Literal de char incompleto");
+            lex[len] = '\0';
+            return crearTokenConLexema(TOKEN_STRING_LITERAL, lex);
+        }
 
-            if (llen < sizeof(lex) - 1) lex[llen++] = '\'';
-
-            lex[llen] = '\0';
-
-            return crearTokenConLexema(TOKEN_CHAR_LITERAL, lex);
-        } else {
-            char closing = obtenerCaracter();
-            if (closing != '\'') return crearTokenConLexema(TOKEN_ERROR, "Literal de char incompleto");
-
-            if (llen < sizeof(lex) - 1) lex[llen++] = d;
-
-            if (llen < sizeof(lex) - 1) lex[llen++] = '\'';
-
-            lex[llen] = '\0';
-
-            return crearTokenConLexema(TOKEN_CHAR_LITERAL, lex);
+        if (d == '\\')
+        {
+            if (!agregarEscapeAlLexema(lex, &len, sizeof(lex)))
+            {
+                // Si 'len' está al límite, no podemos agregar el escape.
+                if (len + 2 >= sizeof(lex)) // +2 por \ y el char
+                    return crearTokenConLexema(TOKEN_ERROR, "String literal demasiado largo");
+                
+                return crearTokenConLexema(TOKEN_ERROR, "Escape no valido");
+            }
+        }
+        else
+        {
+            if (len < sizeof(lex) - 1)
+                lex[len++] = d;
+            else
+                return crearTokenConLexema(TOKEN_ERROR, "String literal demasiado largo");
         }
     }
+}
 
-    // Simbolos simples
-    switch (c) {
-        case ';': return crearTokenConLexema(TOKEN_SEMICOLON, ";");
-        case ',': return crearTokenConLexema(TOKEN_COMMA, ",");
-        case '(' : {
-            if (verProximoCaracter() == ')') {
+Token scanCharLiteral(){
+    char lex[MAX_LEXEMA];
+    size_t len = 0;
+
+    if (len < sizeof(lex) - 1)
+        lex[len++] = '\'';
+    
+    char d = obtenerCaracter();
+    if (d == '\0')
+        return crearTokenConLexema(TOKEN_ERROR, "Literal de char no terminado");
+        
+    if (d == '\\')
+    {
+        if (!agregarEscapeAlLexema(lex, &len, sizeof(lex)))
+            return crearTokenConLexema(TOKEN_ERROR, "Escape no valido en char");
+
+        char closing = obtenerCaracter();
+        if (closing != '\'')
+            return crearTokenConLexema(TOKEN_ERROR, "Literal de char incompleto");
+
+        if (len < sizeof(lex) - 1)
+                lex[len++] = '\'';
+
+        lex[len] = '\0';
+
+        return crearTokenConLexema(TOKEN_CHAR_LITERAL, lex);
+    }
+    else
+    {
+        char closing = obtenerCaracter();
+        if (closing != '\'')
+            return crearTokenConLexema(TOKEN_ERROR, "Literal de char incompleto");
+        if (len < sizeof(lex) - 1)
+            lex[len++] = d;
+        if (len < sizeof(lex) - 1)
+            lex[len++] = '\'';
+
+        lex[len] = '\0';
+
+        return crearTokenConLexema(TOKEN_CHAR_LITERAL, lex);
+    }
+}
+
+Token scanSimbolo(char c){
+    switch (c)
+    {
+        case ';':
+            return crearTokenConLexema(TOKEN_SEMICOLON, ";");
+        case ',':
+            return crearTokenConLexema(TOKEN_COMMA, ",");
+        case '(':
+        {
+            if (verProximoCaracter() == ')')
+            {
                 obtenerCaracter();
                 return crearTokenConLexema(TOKEN_INVOKE, "()");
             }
             return crearTokenConLexema(TOKEN_LPAREN, "(");
         }
-        case ')': return crearTokenConLexema(TOKEN_RPAREN, ")");
-        case '[': return crearTokenConLexema(TOKEN_LBRACKET, "[");
-        case ']': return crearTokenConLexema(TOKEN_RBRACKET, "]");
-        case '*': return crearTokenConLexema(TOKEN_ASTERISK, "*");
-        case '=': return crearTokenConLexema(TOKEN_ASSIGN, "=");
-        default: {
+        case ')':
+            return crearTokenConLexema(TOKEN_RPAREN, ")");
+        case '[':
+            return crearTokenConLexema(TOKEN_LBRACKET, "[");
+        case ']':
+            return crearTokenConLexema(TOKEN_RBRACKET, "]");
+        case '*':
+            return crearTokenConLexema(TOKEN_ASTERISK, "*");
+        case '=':
+            return crearTokenConLexema(TOKEN_ASSIGN, "=");
+        default:
+        {
             char s[4] = {0};
             s[0] = c;
             s[1] = '\0';
@@ -415,6 +366,65 @@ Token getNextToken(void) {
             return crearTokenConLexema(TOKEN_OTHER, s);
         }
     }
+}
+
+Token scanNumber(char c)
+{
+    char lex[MAX_LEXEMA];
+    size_t len = 0;
+    lex[len++] = c;
+
+    if (c == '0')
+    {
+        if (verProximoCaracter() == 'x' || verProximoCaracter() == 'X')
+            return scanHexNumber(lex, len);
+
+        if (verProximoCaracter() >= '0' && verProximoCaracter() <= '7')
+            return scanOctalNumber(lex, len);
+    }
+
+    return scanFloatODecimal(lex, len);
+}
+
+// getNextToken. Funcion principal del Scanner
+Token getNextToken(void)
+{
+    char c;
+
+    // Saltar espacios
+    do
+    {
+        c = obtenerCaracter();
+        if (c == '\0')
+            return crearTokenConLexema(TOKEN_END, "<EOF>");
+    } while(isspace((unsigned char)c));
+
+    // Ident / Keyword
+    if (isalpha((unsigned char)c) || c == '_')
+    {
+        return scanIdentOKeyword(c);
+    }
+
+    // Numeros hex/oct y float/dec
+    if(isdigit((unsigned char)c) || (c == '.' && isdigit((unsigned char)verProximoCaracter())))
+    {
+        return scanNumber(c);
+    }
+
+    //String literals
+    if(c == '"')
+    {
+        return scanStringLiteral();    
+    }
+
+    //Char literals
+    if(c == '\'')
+    {
+        return scanCharLiteral();
+    }
+
+    // Simbolos simples
+    return scanSimbolo(c);    
 }
 
 // printToken. Info del token 

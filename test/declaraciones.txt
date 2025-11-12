@@ -1,0 +1,22 @@
+int x;
+char *s;
+void func();
+
+long arr[10];
+float vector[];
+int suma(int a, int b);
+
+
+char *argv[10];
+
+int (*p_array)[10];
+
+char *getNombre();
+
+void (*callback)(int id);
+
+MiTipoComplicado *obj;
+
+int (y;
+char z];
+int func(int a;

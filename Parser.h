@@ -12,4 +12,6 @@ typedef enum {
 
 ResultadoParseo parseDcl(char *outDescription, size_t maxLen);
 
+int esLineaVacia(const char* linea);
+
 #endif /* PARSER_H */

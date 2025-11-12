@@ -1,4 +1,6 @@
-# Scanner de Declaraciones en C (v-0.1)
+# Scanner y Parser de Declaraciones en C
+
+## Scanner
 
 El **Scanner** es el primer paso de un Compilador que lee el código fuente y lo convierte en una secuencia de Tokens (componentes léxicos), que son las unidades más pequeñas y significativas del código fuente. Luego, el Parser (analizador sintáctico) toma esta lista de tokens y verifica que estén en el orden correcto según las reglas/especificaciones del lenguaje.
 
@@ -68,11 +70,16 @@ La notación de Backus-Naur o, por sus denominaciones inglesas, Backus-Naur Form
 
 Termina siendo un sistema de reglas de derivación, escrito como:
 ```
-<simbolo> ::= <expresión con símbolos>
+<unidad> ::= <expresion> | (<expresion-opcional>)
+```  
+O:
 ```
-donde `<simbolo>` es un **no-terminal**, `::=` se lee como "se define como" o "produce", y la "expresión" consiste en secuencias de símbolos o secuencias separadas por la barra vertical `|`, indicando una "opción", el conjunto es una posible substitución para el símbolo a la izquierda. Los símbolos que nunca aparecen en un lado izquierdo son **terminales**.
+unidad :
+    expresion
+    (expresion-opcional)
+```
 
-Se detalla BNF del Scanner en el archivo "archivo.bnf".
+donde `unidad` es un **no-terminal**, `::=` / `:` se lee como "se define como" o "produce", y la "expresion", "expresion-opcional", consiste en secuencias de símbolos o secuencias separadas por la barra vertical `|` o un salto de línea, indicando una "opcion", el conjunto es una posible substitución para el símbolo a la izquierda. Los símbolos que nunca aparecen en un lado izquierdo son **terminales**.
 
 ## Definición Máquina de Estados (Autómata Finito)
 
@@ -121,4 +128,53 @@ Qo = START
     SIM        // símbolos válidos inicio operador/delimitador (* ( ) [ ] { } , ; : = + - / % < > ! . etc.)
     OTRO       // cualquier otro carácter ASCII no incluido arriba    
 }
+```
+
+## Parser
+
+
+
+## Objetivo
+
+
+
+## BNF Parser
+```
+declaracion : 
+    tipo declarador
+
+tipo : 
+    TOKEN_IDENT
+    KEYWORD
+
+declarador :   
+    secuencia-punteros declarador-directo
+
+secuencia-punteros :     
+    TOKEN_ASTERISK secuencia-punteros>
+    ε
+
+declarador-directo : 
+    TOKEN_LPAREN declarador TOKEN_RPAREN 
+    TOKEN_IDENT 
+    declarador-directo TOKEN_LBRACKET expresion TOKEN_RBRACKET 
+    declarador-directo TOKEN_LPAREN (parametros) TOKEN_RPAREN
+
+expresion : 
+    NUMBER_INT 
+    TOKEN_IDENT
+
+parametros : 
+    parametro ( COMMA parametro )
+
+parametro : 
+    tipo (declarador)
+
+NUMBER_INT : 
+    TOKEN_INT_DEC 
+    TOKEN_INT_HEX 
+    TOKEN_INT_OCTAL
+
+KEYWORD : 
+    int | char | short | long | float | double | void | signed | unsigned | typedef | struct | unión | enum | const | volatile | static | extern | register | inline | restrict | _Bool | _Complex | _Atomic | _Noreturn
 ```
