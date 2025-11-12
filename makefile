@@ -1,28 +1,48 @@
 CC = gcc
-CFLAGS = -std=c11 -Wall
 
-all: scanner parser
+CFLAGS = -Wall -Wextra -g -std=c99
 
-scanner: Scanner.o mainScanner.o
-	$(CC) $(CFLAGS) -o scanner Scanner.o mainScanner.o
+LDFLAGS = 
 
-parser: Scanner.o Parser.o mainParser.o
-	$(CC) $(CFLAGS) -o parser Scanner.o Parser.o mainParser.o
+RM = rm -rf
 
+BIN_DIR = bin
+OBJ_DIR = obj
 
-Scanner.o: Scanner.c Scanner.h
-	$(CC) $(CFLAGS) -c Scanner.c -o Scanner.o
+TARGET_SCANNER = $(BIN_DIR)/scanner
+TARGET_PARSER = $(BIN_DIR)/parser
 
-mainScanner.o: mainScanner.c Scanner.h
-	$(CC) $(CFLAGS) -c mainScanner.c -o mainScanner.o
+OBJS_SCANNER_SRC = mainScanner.o Scanner.o
+OBJS_PARSER_SRC = mainParser.o Parser.o Scanner.o
 
-Parser.o: Parser.c Parser.h
-	$(CC) $(CFLAGS) -c Parser.c -o Parser.o
+OBJS_SCANNER = $(addprefix $(OBJ_DIR)/, $(OBJS_SCANNER_SRC))
+OBJS_PARSER = $(addprefix $(OBJ_DIR)/, $(OBJS_PARSER_SRC))
 
-mainParser.o: mainParser.c Parser.h Scanner.h
-	$(CC) $(CFLAGS) -c mainParser.c -o mainParser.o
+all: $(TARGET_SCANNER) $(TARGET_PARSER)
 
+$(TARGET_PARSER): $(OBJS_PARSER) | $(BIN_DIR)
+	$(CC) $(LDFLAGS) -o $@ $^
+	@echo "--- Ejecutable '$(TARGET_PARSER)' creado. ---"
+
+$(TARGET_SCANNER): $(OBJS_SCANNER) | $(BIN_DIR)
+	$(CC) $(LDFLAGS) -o $@ $^
+	@echo "--- Ejecutable '$(TARGET_SCANNER)' creado. ---"
+
+$(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BIN_DIR):
+	@mkdir -p $@
+
+$(OBJ_DIR):
+	@mkdir -p $@
+
+$(OBJ_DIR)/mainParser.o: mainParser.c parser.h Scanner.h
+$(OBJ_DIR)/Parser.o: Parser.c parser.h Scanner.h
+$(OBJ_DIR)/mainScanner.o: mainScanner.c Scanner.h
+$(OBJ_DIR)/Scanner.o: Scanner.c Scanner.h
+
+.PHONY: clean
 clean:
-	rm -f *.o scanner parser
-
-.PHONY: all clean
+	$(RM) $(BIN_DIR) $(OBJ_DIR)
+	@echo "--- Directorios 'bin' y 'obj' eliminados. ---"
