@@ -11,6 +11,6 @@ typedef enum {
     FALTA_MEMORIA
 } ResultadoParseo;
 
-ResultadoParseo parseDcl(char *outDescription, size_t maxLen);
+void parseUT(void);
 
 #endif /* PARSER_H */

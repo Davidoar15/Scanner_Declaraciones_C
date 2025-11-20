@@ -44,10 +44,12 @@ $(OBJ_DIR)/mainScanner.o: mainScanner.c Scanner.h
 $(OBJ_DIR)/Scanner.o: Scanner.c Scanner.h
 
 parser: 
-	@mkdir -p $(RES_DIR) 
-	./bin/parser declaraciones.txt
+	./bin/parser
+
+scanner: 
+	./bin/scanner
 
 .PHONY: clean
 clean:
 	$(RM) $(BIN_DIR) $(OBJ_DIR) $(RES_DIR)
-	@echo "--- Directorios 'bin', 'obj' y 'result' eliminados. ---"
+	@echo "--- Directorios 'bin' y 'obj' eliminados. ---"

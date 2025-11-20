@@ -11,8 +11,52 @@ static void nextToken(void) {
 
 static void dcl(char *out, size_t maxLen, int *error);
 static void dirdcl(char *out, size_t maxLen, int *error);
+static ResultadoParseo parseDeclaracion(char *outDescription, size_t maxLen);
 
-ResultadoParseo parseDcl(char *outDescription, size_t maxLen)
+void parseUT(void){
+    char linea[4096];
+    char descripcion[2048];
+
+    fprintf(stderr, "## Ingrese declaraciones: \n\n");
+
+    while (1)
+    {
+        if (fgets(linea, sizeof(linea), stdin) == NULL)
+            break;
+        
+        if (linea[0] == '\n')
+            break;
+
+        iniciarScannerDesdeCadena(linea);
+
+        ResultadoParseo result = parseDeclaracion(descripcion, sizeof(descripcion));
+
+        switch (result)
+        {
+            case OK:
+                fprintf(stderr, "\033[32m%s\033[0m\n", descripcion);
+                break;
+
+            case ERROR_LINEA_VACIA:
+                break;
+
+            case ERROR_SINTACTICO:
+                linea[strcspn(linea, "\r\n")] = 0; // Se limpia el \n para el print
+                fprintf(stderr, "\033[31mError sintactico en: %s\033[0m\n", linea);
+                break;
+
+            case FALTA_MEMORIA:
+                fprintf(stderr, "\033[31mError: memoria insuficiente parseando.\033[0m\n");
+                break;
+
+            default:
+                fprintf(stderr, "\033[31mError desconocido parseando.\033[0m\n");
+                break;
+        }
+    }
+}
+
+ResultadoParseo parseDeclaracion(char *outDescription, size_t maxLen)
 {
     if (!outDescription || maxLen == 0)
         return FALTA_MEMORIA;
