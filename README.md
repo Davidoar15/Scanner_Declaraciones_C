@@ -6,7 +6,7 @@ El **Scanner** es el primer paso de un Compilador que lee el código fuente y lo
 
 ## Objetivo
 
-Un Scanner recibe una secuencia de caracteres y producir la secuencia de tokens necesarios para declaraciones: tipos y "qualifiers" (como literales), identificadores, literales numéricos, char/string, símbolos `* ( ) [ ] { } , ; = : ...` y espacios (descartables). Aplica máximo munch; reconoce IDENT y luego compara con la lista de keywords del lenguaje para reclasificar.
+Un Scanner recibe una secuencia de caracteres y producir la secuencia de tokens necesarios para declaraciones: tipos y "qualifiers" (como literales), identificadores, literales numéricos, char/string, símbolos `* ( ) [ ] { } , ; = : ...` y espacios (descartables). Reconoce IDENT y luego compara con la lista de keywords del lenguaje para reclasificar.
 
 ## Tokens e Identificadores
 
@@ -28,7 +28,7 @@ Un Scanner recibe una secuencia de caracteres y producir la secuencia de tokens 
 
 - KEYWORDS 
 
-- SIMBOLOS — `* ( ) [ ] { } , ; : = ... & + - / % << >> == !=` (los que permitas).
+- SIMBOLOS — `* ( ) [ ] , ; : = ... & + - / % << >> == !=` (los que permitas).
 
 - WS — `[ \t\r\n]+` (espacio descartable).
 
@@ -83,7 +83,7 @@ donde `unidad` es un **no-terminal**, `::=` / `:` se lee como "se define como" o
 
 ## Definición Máquina de Estados (Autómata Finito)
 
-![Maquina-Estados](https://i.postimg.cc/6Qv4MSW7/maquina-estado-scanner.png)
+![Maquina-Estados](assets/maquina-estado-scanner.png)
 
 ## Formalización
 

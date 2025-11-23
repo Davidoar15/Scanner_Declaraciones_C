@@ -13,11 +13,9 @@ static void dcl(char *out, size_t maxLen, int *error);
 static void dirdcl(char *out, size_t maxLen, int *error);
 static ResultadoParseo parseDeclaracion(char *outDescription, size_t maxLen);
 
-void parseUT(void){
+void parseUT(){
     char linea[4096];
     char descripcion[2048];
-
-    fprintf(stderr, "## Ingrese declaraciones: \n\n");
 
     while (1)
     {

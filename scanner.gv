@@ -40,9 +40,14 @@ digraph ScannerC {
     START -> POINTER [label="'*'"];
     POINTER -> ACCEPT [label="otro"];
 
-    // Delimitadores ; , ( ) { }
-    START -> DELIMITER [label="; , ( ) { }"];
+    // Delimitadores ; , ( ) [ ] 
+    START -> DELIMITER [label="; , ( ) [ ]"];
     DELIMITER -> ACCEPT [label="otro"];
+
+    // Invocación Vacía ()
+    START -> LPAREN [label="("];
+    LPAREN -> INVOKE [label=")"];
+    INVOKE -> ACCEPT;   
 
     // Espacios / saltos
     START -> START [label="espacio/salto"];

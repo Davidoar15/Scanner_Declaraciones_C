@@ -42,14 +42,13 @@ typedef struct {
     ValorToken valor; 
 } Token;
 
-/* Inicializa el scanner para leer desde una cadena (si s != NULL) */
+// Inicializa el scanner para leer desde una cadena (si s != NULL)
 void iniciarScannerDesdeCadena(const char *s);
 
-/* devuelve el siguiente token; antes: llamar a tokenFree(&t).
-   ahora tokenFree es no-op porque no usamos heap por token. */
+// devuelve el siguiente token
 Token getNextToken(void);
 
-/* imprime token en stdout */
+// imprime token en stdout 
 void printToken(const Token *t);
 
 #endif /* SCANNER_H */
