@@ -13,101 +13,96 @@ static void dcl(char *out, size_t maxLen, int *error);
 static void dirdcl(char *out, size_t maxLen, int *error);
 static ResultadoParseo parseDeclaracion(char *outDescription, size_t maxLen);
 
-void parseUT(){
+static int esInicioDeDeclaracion(void)
+{
+    return (currentToken.tipo == TOKEN_KEYWORD) || (currentToken.tipo == TOKEN_IDENT);
+}
+
+void parseUT(void)
+{
     char linea[4096];
     char descripcion[2048];
 
-    while (1)
+    while (fgets(linea, sizeof(linea), stdin))
     {
-        if (fgets(linea, sizeof(linea), stdin) == NULL)
-            break;
-        
-        if (linea[0] == '\n')
-            break;
+        if (linea[0] == '\n') break;
 
+        linea[strcspn(linea, "\r\n")] = 0; 
         iniciarScannerDesdeCadena(linea);
 
-        ResultadoParseo result = parseDeclaracion(descripcion, sizeof(descripcion));
+        nextToken();
 
-        switch (result)
+        while (currentToken.tipo != TOKEN_END)
         {
-            case OK:
+            if (!esInicioDeDeclaracion())
+            {
+                fprintf(stderr, "\033[31mError: se esperaba tipo al inicio de declaración\033[0m\n");
+                while (currentToken.tipo != TOKEN_SEMICOLON && currentToken.tipo != TOKEN_END)
+                    nextToken();
+                if (currentToken.tipo == TOKEN_SEMICOLON) nextToken();
+                continue;
+            }
+
+            ResultadoParseo r = parseDeclaracion(descripcion, sizeof(descripcion));
+
+            if (r == OK)
                 fprintf(stderr, "\033[32m%s\033[0m\n", descripcion);
-                break;
-
-            case ERROR_LINEA_VACIA:
-                break;
-
-            case ERROR_SINTACTICO:
-                linea[strcspn(linea, "\r\n")] = 0; // Se limpia el \n para el print
-                fprintf(stderr, "\033[31mError sintactico en: %s\033[0m\n", linea);
-                break;
-
-            case FALTA_MEMORIA:
-                fprintf(stderr, "\033[31mError: memoria insuficiente parseando.\033[0m\n");
-                break;
-
-            default:
-                fprintf(stderr, "\033[31mError desconocido parseando.\033[0m\n");
-                break;
+            else if (r == ERROR_SINTACTICO)
+            {
+                fprintf(stderr, "\033[31mError sintáctico cerca de: %s\033[0m\n",
+                        currentToken.lexema ? currentToken.lexema : "(fin)");
+                while (currentToken.tipo != TOKEN_SEMICOLON && currentToken.tipo != TOKEN_END)
+                    nextToken();
+                if (currentToken.tipo == TOKEN_SEMICOLON) nextToken();
+            }
+            else if (r == FALTA_MEMORIA)
+            {
+                fprintf(stderr, "\033[31mError: falta memoria\033[0m\n");
+                return;
+            }
         }
     }
 }
 
 ResultadoParseo parseDeclaracion(char *outDescription, size_t maxLen)
 {
-    if (!outDescription || maxLen == 0)
-        return FALTA_MEMORIA;
+    if (!outDescription || maxLen == 0) return FALTA_MEMORIA;
 
     parsed_name[0] = '\0';
     outDescription[0] = '\0';
-
-    // leer primer token
-    nextToken();
-
-    if (currentToken.tipo == TOKEN_END)
-        return ERROR_LINEA_VACIA;
 
     char datatype[256] = {0};
     if (currentToken.tipo == TOKEN_KEYWORD || currentToken.tipo == TOKEN_IDENT)
     {
         strncpy(datatype, currentToken.lexema ? currentToken.lexema : "", sizeof(datatype)-1);
-        datatype[sizeof(datatype)-1] = '\0';
     }
     else
         return ERROR_SINTACTICO;
-    
 
-    nextToken();
+    nextToken();  
 
     int err = 0;
     dcl(outDescription, maxLen, &err);
+    if (err) return ERROR_SINTACTICO;
 
-    if (err)
+    
+    if (currentToken.tipo != TOKEN_SEMICOLON)
         return ERROR_SINTACTICO;
 
-    // esperamos terminar la declaración con ';'
-    if (currentToken.tipo == TOKEN_SEMICOLON)
-        nextToken();
-    
-    else
-        return ERROR_SINTACTICO;
-    
+    nextToken(); 
 
     if (parsed_name[0] == '\0')
         return ERROR_SINTACTICO;
 
-    char tmp[maxLen];
-    tmp[0] = '\0';
+    const char *p = outDescription;
+    while (*p == ' ') p++;
 
-    // quitar espacios redundantes al inicio de outDescription 
-    const char *pdesc = outDescription;
-    while (*pdesc == ' ')
-        pdesc++;
-
-    if (snprintf(tmp, sizeof(tmp), "%s: %s %s", parsed_name, pdesc, datatype) >= (int)sizeof(tmp))
-        return FALTA_MEMORIA;
-    
+    char tmp[2048];
+    snprintf(tmp, sizeof(tmp), "%s: %s%s%s",
+             parsed_name,
+             p[0] ? p : "",
+             p[0] ? " " : "",
+             datatype);
 
     strncpy(outDescription, tmp, maxLen-1);
     outDescription[maxLen-1] = '\0';
@@ -143,8 +138,10 @@ static void dirdcl(char *out, size_t maxLen, int *error)
     {
         nextToken();
         dcl(out, maxLen, error);
+
         if (*error)
             return;
+
         if (currentToken.tipo != TOKEN_RPAREN)
         {
             *error = 1;
@@ -171,9 +168,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
         if (currentToken.tipo == TOKEN_INVOKE) // int x()
         {
             if ((size_t)(strlen(out) + strlen(" funcion que retorna") + 1) < maxLen)
-            {
                 strncat(out, " funcion que retorna", maxLen - strlen(out) - 1);
-            }
             else
             {
                 *error = 1;
@@ -184,26 +179,32 @@ static void dirdcl(char *out, size_t maxLen, int *error)
         else if (currentToken.tipo == TOKEN_LPAREN) // int x(int i)
         {
             if ((size_t)(strlen(out) + strlen(" funcion que retorna") + 1) < maxLen)
-            {
                 strncat(out, " funcion que retorna", maxLen - strlen(out) - 1);
-            }
             else
             {
                 *error = 1;
                 return;
             }
             nextToken(); // consumir '('
-            // Consumir lista de parametros (sin analizarlos)
-            while (currentToken.tipo != TOKEN_RPAREN && currentToken.tipo != TOKEN_END)
+
+            int nesting = 1;
+            while (nesting > 0 && currentToken.tipo != TOKEN_END)
             {
-                nextToken();
+                if (currentToken.tipo == TOKEN_LPAREN)
+                    nesting++;
+                else if (currentToken.tipo == TOKEN_RPAREN)
+                    nesting--;
+
+                if (nesting > 0)
+                    nextToken();
             }
-            if (currentToken.tipo != TOKEN_RPAREN)
+            
+            if (nesting > 0)
             {
                 *error = 1;
                 return;
             }
-            nextToken(); // consumir ')'
+            nextToken(); // consumir el ultimo ')'
         }
         else if (currentToken.tipo == TOKEN_LBRACKET)
         {
@@ -217,9 +218,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
             if (currentToken.tipo == TOKEN_RBRACKET)
             {
                 if ((size_t)(strlen(out) + strlen(" array de") + 1) < maxLen)
-                {
                     strncat(out, " array de", maxLen - strlen(out) - 1);
-                }
                 else
                 {
                     *error = 1;
@@ -250,6 +249,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                 }
                 nextToken();
             }
+
             if (currentToken.tipo != TOKEN_RBRACKET)
             {
                 *error = 1;
@@ -260,18 +260,12 @@ static void dirdcl(char *out, size_t maxLen, int *error)
 
             char tmp[256];
             if (inside[0] != '\0')
-            {
                 snprintf(tmp, sizeof(tmp), " array[%s] de", inside);
-            }
             else
-            {
                 snprintf(tmp, sizeof(tmp), " array de");
-            }
             
             if ((size_t)(strlen(out) + strlen(tmp) + 1) < maxLen)
-            {
                 strncat(out, tmp, maxLen - strlen(out) - 1);
-            }
             else
             {
                 *error = 1;
