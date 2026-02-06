@@ -163,20 +163,9 @@ static void dirdcl(char *out, size_t maxLen, int *error)
 
     // Manejo de [] y () en cadena 
     // (FIX) Añadido TOKEN_LPAREN para manejar "funcion(con_parametros)"
-    while (currentToken.tipo == TOKEN_INVOKE || currentToken.tipo == TOKEN_LBRACKET || currentToken.tipo == TOKEN_LPAREN)
+    while (currentToken.tipo == TOKEN_LBRACKET || currentToken.tipo == TOKEN_LPAREN)
     {
-        if (currentToken.tipo == TOKEN_INVOKE) // int x()
-        {
-            if ((size_t)(strlen(out) + strlen(" funcion que retorna") + 1) < maxLen)
-                strncat(out, " funcion que retorna", maxLen - strlen(out) - 1);
-            else
-            {
-                *error = 1;
-                return;
-            }
-            nextToken();
-        }
-        else if (currentToken.tipo == TOKEN_LPAREN) // int x(int i)
+        if (currentToken.tipo == TOKEN_LPAREN) // int x(int i)
         {
             if ((size_t)(strlen(out) + strlen(" funcion que retorna") + 1) < maxLen)
                 strncat(out, " funcion que retorna", maxLen - strlen(out) - 1);

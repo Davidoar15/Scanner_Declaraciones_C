@@ -321,14 +321,7 @@ Token scanSimbolo(char c){
         case ',':
             return crearTokenConLexema(TOKEN_COMMA, ",");
         case '(':
-        {
-            if (verProximoCaracter() == ')')
-            {
-                obtenerCaracter();
-                return crearTokenConLexema(TOKEN_INVOKE, "()");
-            }
             return crearTokenConLexema(TOKEN_LPAREN, "(");
-        }
         case ')':
             return crearTokenConLexema(TOKEN_RPAREN, ")");
         case '[':
@@ -433,7 +426,6 @@ void printToken(const Token *token) {
         case TOKEN_RBRACKET: nombre = "RBRACKET"; break;
         case TOKEN_ASTERISK: nombre = "ASTERISK"; break;
         case TOKEN_ASSIGN: nombre = "ASSIGN"; break;
-        case TOKEN_INVOKE: nombre = "INVOKE"; break;
         case TOKEN_OTHER: nombre = "OTHER"; break;
     }
     if (token->tipo == TOKEN_INT_DEC || token->tipo == TOKEN_INT_HEX || token->tipo == TOKEN_INT_OCTAL) {

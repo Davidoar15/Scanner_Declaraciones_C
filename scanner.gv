@@ -32,22 +32,34 @@ digraph ScannerC {
     ESCAPE -> STRING [label="cualquier caracter"];
     STRING -> ACCEPT [label="\""];
 
-    // Operadores
+    // Operador =
     START -> ASSIGN_OP [label="'='"];
     ASSIGN_OP -> ACCEPT [label="otro"];
 
-    // Punteros
+    // Puntero
     START -> POINTER [label="'*'"];
     POINTER -> ACCEPT [label="otro"];
 
-    // Delimitadores ; , ( ) [ ] 
-    START -> DELIMITER [label="; , ( ) [ ]"];
-    DELIMITER -> ACCEPT [label="otro"];
+    // Parentesis 
+    START -> LPAREN [label="'('"];
+    LPAREN -> ACCEPT [label="otro"];
 
-    // Invocación Vacía ()
-    START -> LPAREN [label="("];
-    LPAREN -> INVOKE [label=")"];
-    INVOKE -> ACCEPT;   
+    START -> RPAREN [label="')'"];
+    RPAREN -> ACCEPT [label="otro"];
+
+    // Corchetes
+    START -> LBRACKET [label="'['"];
+    LBRACKET -> ACCEPT [label="otro"];
+
+    START -> RBRACKET [label="']'"];
+    RBRACKET -> ACCEPT [label="otro"];
+
+    // Separadores , ;
+    START -> COMMA [label="','"];
+    COMMA -> ACCEPT [label="otro"];
+
+    START -> SEMICOLON [label="';'"];
+    SEMICOLON -> ACCEPT [label="otro"];
 
     // Espacios / saltos
     START -> START [label="espacio/salto"];
