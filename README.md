@@ -148,7 +148,7 @@ UT :
 declaracion : 
     tipo declarador TOKEN_SEMICOLON ;
 
-tipo : 
+tipo :
       TOKEN_IDENT
     | KEYWORD
     ;
@@ -159,32 +159,30 @@ declarador :
 secuencia-punteros :     
     TOKEN_ASTERISK (secuencia-punteros) ;
 
-
 declarador-directo : 
       TOKEN_LPAREN declarador TOKEN_RPAREN 
     TOKEN_IDENT 
     | declarador-directo TOKEN_LBRACKET expresion TOKEN_RBRACKET 
-    | declarador-directo TOKEN_LPAREN (parametros) TOKEN_RPAREN
+    | declarador-directo TOKEN_LPAREN (lista-parametros) TOKEN_RPAREN
     ;
 
 expresion : 
-      NUMBER_INT 
-    | TOKEN_IDENT
-    ;
+    NUMBER_INT 
+    TOKEN_IDENT
 
-parametros : 
-    parametro ( COMMA parametro ) ;
+lista-parametros : 
+      parametro
+    | lista-parametros TOKEN_COMMA parametro
+    ;
 
 parametro : 
     tipo (declarador) ;
 
 NUMBER_INT : 
-      TOKEN_INT_DEC 
-    | TOKEN_INT_HEX 
-    | TOKEN_INT_OCTAL
-    ;
+    TOKEN_INT_DEC 
+    TOKEN_INT_HEX 
+    TOKEN_INT_OCTAL
 
 KEYWORD : 
     int | char | short | long | float | double | void | signed | unsigned | typedef | struct | unión | enum | const | volatile | static | extern | register | inline | restrict | _Bool | _Complex | _Atomic | _Noreturn
-    ;
 ```

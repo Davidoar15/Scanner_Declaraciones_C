@@ -36,7 +36,7 @@ void parseUT(void)
         {
             if (!esInicioDeDeclaracion())
             {
-                fprintf(stderr, "\033[31mError: se esperaba tipo al inicio de declaración\033[0m\n");
+                fprintf(stderr, "\033[31mError: se esperaba tipo al inicio de declaracion\033[0m\n");
                 while (currentToken.tipo != TOKEN_SEMICOLON && currentToken.tipo != TOKEN_END)
                     nextToken();
                 if (currentToken.tipo == TOKEN_SEMICOLON) nextToken();
@@ -49,7 +49,7 @@ void parseUT(void)
                 fprintf(stderr, "\033[32m%s\033[0m\n", descripcion);
             else if (r == ERROR_SINTACTICO)
             {
-                fprintf(stderr, "\033[31mError sintáctico cerca de: %s\033[0m\n",
+                fprintf(stderr, "\033[31mError sintactico cerca de: %s\033[0m\n",
                         currentToken.lexema ? currentToken.lexema : "(fin)");
                 while (currentToken.tipo != TOKEN_SEMICOLON && currentToken.tipo != TOKEN_END)
                     nextToken();
@@ -167,8 +167,8 @@ static void dirdcl(char *out, size_t maxLen, int *error)
     {
         if (currentToken.tipo == TOKEN_LPAREN) // int x(int i)
         {
-            if ((size_t)(strlen(out) + strlen(" funcion que retorna") + 1) < maxLen)
-                strncat(out, " funcion que retorna", maxLen - strlen(out) - 1);
+            if ((size_t)(strlen(out) + strlen(" funcion") + 1) < maxLen)
+                strncat(out, " funcion", maxLen - strlen(out) - 1);
             else
             {
                 *error = 1;
@@ -176,24 +176,75 @@ static void dirdcl(char *out, size_t maxLen, int *error)
             }
             nextToken(); // consumir '('
 
-            int nesting = 1;
-            while (nesting > 0 && currentToken.tipo != TOKEN_END)
+            if (currentToken.tipo != TOKEN_RPAREN)
             {
-                if (currentToken.tipo == TOKEN_LPAREN)
-                    nesting++;
-                else if (currentToken.tipo == TOKEN_RPAREN)
-                    nesting--;
+                if (strlen(out) + 11 < maxLen)
+                    strcat(out, " que recibe ");
+                else 
+                {
+                    *error = 1;
+                    return;
+                }
 
-                if (nesting > 0)
+                int first = 1;
+                while(1)
+                {
+                    if (currentToken.tipo != TOKEN_KEYWORD && currentToken.tipo != TOKEN_IDENT)
+                    {
+                        *error = 1;
+                        return;
+                    }
+
+                    if (!first) strcat(out, ", ");
+                    strcat(out, currentToken.lexema);
+                    strcat(out, " ");
+
                     nextToken();
+
+                    // nombre parametro
+                    if (currentToken.tipo != TOKEN_IDENT)
+                    {
+                        *error = 1;
+                        return;
+                    }
+
+                    strcat(out, currentToken.lexema);
+                    first = 0;
+
+                    nextToken();
+
+                    if(currentToken.tipo == TOKEN_COMMA)
+                    {
+                        nextToken();
+                        continue;
+                    }
+                    break;
+                }
+
+                if (strlen(out) + 15 < maxLen)
+                    strcat(out, " como parametros");
+                else 
+                {
+                    *error = 1;
+                    return;
+                }
             }
-            
-            if (nesting > 0)
+
+            if (currentToken.tipo != TOKEN_RPAREN)
             {
                 *error = 1;
                 return;
             }
-            nextToken(); // consumir el ultimo ')'
+
+            nextToken();
+
+            if (strlen(out) + 12 < maxLen)
+                strcat(out, " que retorna");
+            else 
+            {
+                *error = 1;
+                return;
+            }
         }
         else if (currentToken.tipo == TOKEN_LBRACKET)
         {
