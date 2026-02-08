@@ -201,6 +201,13 @@ static void dirdcl(char *out, size_t maxLen, int *error)
 
                     nextToken();
 
+                    // consumir punteros *
+                    while (currentToken.tipo == TOKEN_ASTERISK)
+                    {
+                        strcat(out, "*");
+                        nextToken();
+                    }
+
                     // nombre parametro
                     if (currentToken.tipo != TOKEN_IDENT)
                     {
@@ -212,6 +219,19 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                     first = 0;
 
                     nextToken();
+
+                    // consumir array sin dimension []
+                    if (currentToken.tipo == TOKEN_LBRACKET)
+                    {
+                        nextToken();
+                        if (currentToken.tipo != TOKEN_RBRACKET)
+                        {
+                            *error = 1;
+                            return;
+                        }
+                        nextToken();
+                        strcat(out, "[]");
+                    }
 
                     if(currentToken.tipo == TOKEN_COMMA)
                     {
