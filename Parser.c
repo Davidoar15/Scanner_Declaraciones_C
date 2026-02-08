@@ -1,5 +1,7 @@
 #include "parser.h"
 
+#define FAIL() do { *error = 1; return; } while(0)
+
 static Token currentToken;
 
 // nombre del identificador parseado (almacenado por dirdcl)
@@ -122,12 +124,10 @@ static void dcl(char *out, size_t maxLen, int *error) {
     if (*error) return;
 
     while (ns-- > 0) {
-        if ((size_t)(strlen(out) + strlen(" apuntador a") + 1) < maxLen) {
+        if ((size_t)(strlen(out) + strlen(" apuntador a") + 1) < maxLen)
             strncat(out, " apuntador a", maxLen - strlen(out) - 1);
-        } else {
-            *error = 1;
-            return;
-        }
+        else 
+            FAIL();
     }
 }
 
@@ -142,11 +142,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
         if (*error)
             return;
 
-        if (currentToken.tipo != TOKEN_RPAREN)
-        {
-            *error = 1;
-            return;
-        }
+        if (currentToken.tipo != TOKEN_RPAREN) FAIL();
         nextToken();
     }
     else if (currentToken.tipo == TOKEN_IDENT)
@@ -156,10 +152,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
         nextToken();
     }
     else
-    {
-        *error = 1;
-        return;
-    }
+        FAIL();
 
     // Manejo de [] y () en cadena 
     // (FIX) Añadido TOKEN_LPAREN para manejar "funcion(con_parametros)"
@@ -170,10 +163,8 @@ static void dirdcl(char *out, size_t maxLen, int *error)
             if ((size_t)(strlen(out) + strlen(" funcion") + 1) < maxLen)
                 strncat(out, " funcion", maxLen - strlen(out) - 1);
             else
-            {
-                *error = 1;
-                return;
-            }
+                FAIL();
+
             nextToken(); // consumir '('
 
             if (currentToken.tipo != TOKEN_RPAREN)
@@ -181,19 +172,12 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                 if (strlen(out) + 11 < maxLen)
                     strcat(out, " que recibe ");
                 else 
-                {
-                    *error = 1;
-                    return;
-                }
+                    FAIL();
 
                 int first = 1;
                 while(1)
                 {
-                    if (currentToken.tipo != TOKEN_KEYWORD && currentToken.tipo != TOKEN_IDENT)
-                    {
-                        *error = 1;
-                        return;
-                    }
+                    if (currentToken.tipo != TOKEN_KEYWORD && currentToken.tipo != TOKEN_IDENT) FAIL();
 
                     if (!first) strcat(out, ", ");
                     strcat(out, currentToken.lexema);
@@ -209,11 +193,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                     }
 
                     // nombre parametro
-                    if (currentToken.tipo != TOKEN_IDENT)
-                    {
-                        *error = 1;
-                        return;
-                    }
+                    if (currentToken.tipo != TOKEN_IDENT) FAIL();
 
                     strcat(out, currentToken.lexema);
                     first = 0;
@@ -224,11 +204,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                     if (currentToken.tipo == TOKEN_LBRACKET)
                     {
                         nextToken();
-                        if (currentToken.tipo != TOKEN_RBRACKET)
-                        {
-                            *error = 1;
-                            return;
-                        }
+                        if (currentToken.tipo != TOKEN_RBRACKET) FAIL();
                         nextToken();
                         strcat(out, "[]");
                     }
@@ -244,27 +220,17 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                 if (strlen(out) + 15 < maxLen)
                     strcat(out, " como parametros");
                 else 
-                {
-                    *error = 1;
-                    return;
-                }
+                    FAIL();
             }
 
-            if (currentToken.tipo != TOKEN_RPAREN)
-            {
-                *error = 1;
-                return;
-            }
+            if (currentToken.tipo != TOKEN_RPAREN) FAIL();
 
             nextToken();
 
             if (strlen(out) + 12 < maxLen)
                 strcat(out, " que retorna");
             else 
-            {
-                *error = 1;
-                return;
-            }
+                FAIL();
         }
         else if (currentToken.tipo == TOKEN_LBRACKET)
         {
@@ -280,10 +246,8 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                 if ((size_t)(strlen(out) + strlen(" array de") + 1) < maxLen)
                     strncat(out, " array de", maxLen - strlen(out) - 1);
                 else
-                {
-                    *error = 1;
-                    return;
-                }
+                    FAIL();
+                    
                 // consumir ']' 
                 nextToken();
                 continue;
@@ -303,18 +267,13 @@ static void dirdcl(char *out, size_t maxLen, int *error)
                     inside[ipos] = '\0';
                 }
                 else
-                {
-                    *error = 1;
-                    return;
-                }
+                    FAIL();
+
                 nextToken();
             }
 
-            if (currentToken.tipo != TOKEN_RBRACKET)
-            {
-                *error = 1;
-                return;
-            }
+            if (currentToken.tipo != TOKEN_RBRACKET) FAIL();
+
             // ahora currentToken es ']'
             nextToken();
 
@@ -327,10 +286,7 @@ static void dirdcl(char *out, size_t maxLen, int *error)
             if ((size_t)(strlen(out) + strlen(tmp) + 1) < maxLen)
                 strncat(out, tmp, maxLen - strlen(out) - 1);
             else
-            {
-                *error = 1;
-                return;
-            }
+                FAIL();
         }
     }
 }
